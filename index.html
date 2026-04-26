@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>STAR SNAKE — George's Game</title>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #05050f;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      font-family: 'Press Start 2P', monospace;
+      overflow: hidden;
+    }
+
+    /* Starfield background */
+    #starfield {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    .game-wrapper {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+    }
+
+    /* Title */
+    h1 {
+      font-size: 20px;
+      color: #00ff88;
+      text-shadow: 0 0 20px rgba(0,255,136,0.8), 0 0 40px rgba(0,255,136,0.4);
+      letter-spacing: 4px;
+      animation: pulse 2s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { text-shadow: 0 0 20px rgba(0,255,136,0.8), 0 0 40px rgba(0,255,136,0.4); }
+      50%       { text-shadow: 0 0 30px rgba(0,255,136,1),   0 0 60px rgba(0,255,136,0.6); }
+    }
+
+    /* HUD */
+    .hud {
+      display: flex;
+      gap: 48px;
+      font-size: 10px;
+      color: #7070b0;
+    }
+    .hud span { color: #00ff88; }
+
+    /* Canvas */
+    #gameCanvas {
+      border: 2px solid #1a1a3a;
+      border-radius: 4px;
+      box-shadow:
+        0 0 0 1px #0a0a20,
+        0 0 40px rgba(0,100,255,0.15),
+        inset 0 0 60px rgba(0,0,30,0.8);
+      display: block;
+      image-rendering: pixelated;
+    }
+
+    /* Message overlay */
+    #message {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 20px;
+      background: rgba(5,5,15,0.85);
+      border-radius: 4px;
+    }
+    #message h2 {
+      font-size: 14px;
+      color: #00ff88;
+      text-shadow: 0 0 20px rgba(0,255,136,0.8);
+      text-align: center;
+      line-height: 2;
+    }
+    #message p {
+      font-size: 9px;
+      color: #7070b0;
+      text-align: center;
+      line-height: 2.2;
+    }
+    #message .blink {
+      font-size: 10px;
+      color: #ffe800;
+      animation: blink 1s step-end infinite;
+    }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+    #message.hidden { display: none; }
+
+    /* Controls hint */
+    .controls {
+      font-size: 8px;
+      color: #404060;
+      letter-spacing: 1px;
+      text-align: center;
+      line-height: 2.2;
+    }
+  </style>
+</head>
+<body>
+
+<canvas id="starfield"></canvas>
+
+<div class="game-wrapper">
+  <h1>★ STAR SNAKE ★</h1>
+
+  <div class="hud">
+    <div>SCORE <span id="scoreDisplay">0</span></div>
+    <div>BEST &nbsp;<span id="bestDisplay">0</span></div>
+    <div>LEVEL <span id="levelDisplay">1</span></div>
+  </div>
+
+  <div style="position:relative;">
+    <canvas id="gameCanvas" width="480" height="480"></canvas>
+    <div id="message">
+      <h2>STAR SNAKE</h2>
+      <p>Collect ★ stars to grow<br>and boost your score.<br>Don't hit the walls or yourself!</p>
+      <div class="blink">— PRESS SPACE TO LAUNCH —</div>
+    </div>
+  </div>
+
+  <div class="controls">
+    ARROW KEYS or WASD to steer &nbsp;|&nbsp; SPACE to pause
+  </div>
+</div>
+
+<script>
+  // ─────────────────────────────────────────────
+  //  STARFIELD BACKGROUND
+  // ─────────────────────────────────────────────
+  const sfCanvas = document.getElementById('starfield');
+  const sfCtx    = sfCanvas.getContext('2d');
+
+  function resizeStarfield() {
+    sfCanvas.width  = window.innerWidth;
+    sfCanvas.height = window.innerHeight;
+  }
+  resizeStarfield();
+  window.addEventListener('resize', resizeStarfield);
+
+  // Create stars
+  const STAR_COUNT = 180;
+  const stars = Array.from({ length: STAR_COUNT }, () => ({
+    x:    Math.random() * window.innerWidth,
+    y:    Math.random() * window.innerHeight,
+    r:    Math.random() * 1.4 + 0.2,
+    a:    Math.random(),
+    spd:  Math.random() * 0.004 + 0.001,
+  }));
+
+  function drawStarfield() {
+    sfCanvas.width = window.innerWidth;
+    sfCanvas.height = window.innerHeight;
+    stars.forEach(s => {
+      s.a += s.spd;
+      const alpha = (Math.sin(s.a) + 1) / 2 * 0.8 + 0.1;
+      sfCtx.beginPath();
+      sfCtx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+      sfCtx.fillStyle = `rgba(200,210,255,${alpha})`;
+      sfCtx.fill();
+    });
+    requestAnimationFrame(drawStarfield);
+  }
+  drawStarfield();
+
+  // ─────────────────────────────────────────────
+  //  GAME SETUP
+  // ─────────────────────────────────────────────
+  const canvas  = document.getElementById('gameCanvas');
+  const ctx     = canvas.getContext('2d');
+  const COLS    = 24;   // grid columns
+  const ROWS    = 24;   // grid rows
+  const CELL    = canvas.width / COLS;  // pixels per cell
+
+  // Game state
+  let snake, dir, nextDir, food, score, best, level, speed, gameState, loopTimer;
+
+  // UI elements
+  const scoreEl   = document.getElementById('scoreDisplay');
+  const bestEl    = document.getElementById('bestDisplay');
+  const levelEl   = document.getElementById('levelDisplay');
+  const messageEl = document.getElementById('message');
+
+  // ─────────────────────────────────────────────
+  //  INITIALISE / RESET
+  // ─────────────────────────────────────────────
+  function initGame() {
+    // Snake starts as 3 segments in the middle, moving right
+    snake   = [
+      { x: 13, y: 12 },
+      { x: 12, y: 12 },
+      { x: 11, y: 12 },
+    ];
+    dir     = { x: 1, y: 0 };
+    nextDir = { x: 1, y: 0 };
+    score   = 0;
+    level   = 1;
+    speed   = 150;  // ms between moves (lower = faster)
+    best    = parseInt(localStorage.getItem('starSnakeBest') || '0');
+    placeFood();
+    updateHUD();
+  }
+
+  // Place a star (food) at a random empty cell
+  function placeFood() {
+    const empty = [];
+    for (let x = 0; x < COLS; x++) {
+      for (let y = 0; y < ROWS; y++) {
+        if (!snake.some(s => s.x === x && s.y === y)) {
+          empty.push({ x, y });
+        }
+      }
+    }
+    food = empty[Math.floor(Math.random() * empty.length)];
+  }
+
+  // ─────────────────────────────────────────────
+  //  GAME LOOP
+  // ─────────────────────────────────────────────
+  function startLoop() {
+    clearInterval(loopTimer);
+    loopTimer = setInterval(tick, speed);
+  }
+
+  function tick() {
+    if (gameState !== 'playing') return;
+
+    // Apply buffered direction
+    dir = { ...nextDir };
+
+    // New head position
+    const head = { x: snake[0].x + dir.x, y: snake[0].y + dir.y };
+
+    // Wall collision → game over
+    if (head.x < 0 || head.x >= COLS || head.y < 0 || head.y >= ROWS) {
+      return gameOver();
+    }
+
+    // Self collision → game over
+    if (snake.some(s => s.x === head.x && s.y === head.y)) {
+      return gameOver();
+    }
+
+    // Add new head
+    snake.unshift(head);
+
+    // Did we eat the star?
+    if (head.x === food.x && head.y === food.y) {
+      // Grow (don't remove tail), add points
+      score += level * 10;
+
+      // Level up every 5 stars
+      if (score >= level * 50) {
+        level++;
+        speed = Math.max(60, speed - 15);  // get faster, min 60ms
+        startLoop();                         // restart timer with new speed
+      }
+
+      placeFood();
+    } else {
+      // Normal move: remove tail
+      snake.pop();
+    }
+
+    updateHUD();
+    draw();
+  }
+
+  // ─────────────────────────────────────────────
+  //  DRAWING
+  // ─────────────────────────────────────────────
+  function draw() {
+    // Clear
+    ctx.fillStyle = '#07071a';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Draw subtle grid
+    ctx.strokeStyle = 'rgba(255,255,255,0.025)';
+    ctx.lineWidth = 0.5;
+    for (let x = 0; x <= COLS; x++) {
+      ctx.beginPath();
+      ctx.moveTo(x * CELL, 0);
+      ctx.lineTo(x * CELL, canvas.height);
+      ctx.stroke();
+    }
+    for (let y = 0; y <= ROWS; y++) {
+      ctx.beginPath();
+      ctx.moveTo(0, y * CELL);
+      ctx.lineTo(canvas.width, y * CELL);
+      ctx.stroke();
+    }
+
+    // Draw snake
+    snake.forEach((seg, i) => {
+      const x = seg.x * CELL;
+      const y = seg.y * CELL;
+      const pad = 2;
+
+      if (i === 0) {
+        // Head — bright green glowing cockpit
+        ctx.fillStyle = '#00ff88';
+        ctx.shadowColor = '#00ff88';
+        ctx.shadowBlur = 12;
+        ctx.fillRect(x + pad, y + pad, CELL - pad * 2, CELL - pad * 2);
+        ctx.shadowBlur = 0;
+
+        // Little "visor" on head
+        ctx.fillStyle = '#003322';
+        ctx.fillRect(x + pad + 3, y + pad + 3, CELL - pad * 2 - 6, CELL - pad * 2 - 6);
+
+      } else {
+        // Body — rocket trail fading from teal to purple
+        const t = i / snake.length;
+        const r = Math.round(t * 120);
+        const g = Math.round(255 - t * 200);
+        const b = Math.round(100 + t * 155);
+        const alpha = 1 - t * 0.5;
+
+        ctx.fillStyle = `rgba(${r},${g},${b},${alpha})`;
+        ctx.shadowColor = `rgba(${r},${g},${b},0.6)`;
+        ctx.shadowBlur = 6;
+        ctx.fillRect(x + pad + 1, y + pad + 1, CELL - (pad + 1) * 2, CELL - (pad + 1) * 2);
+        ctx.shadowBlur = 0;
+      }
+    });
+
+    // Draw food (pulsing star)
+    const pulse = (Math.sin(Date.now() / 300) + 1) / 2;
+    const fx = food.x * CELL + CELL / 2;
+    const fy = food.y * CELL + CELL / 2;
+    const fr = CELL / 2 - 3 + pulse * 2;
+
+    ctx.save();
+    ctx.translate(fx, fy);
+    ctx.rotate(Date.now() / 800);
+
+    // Glow
+    ctx.shadowColor = '#ffe800';
+    ctx.shadowBlur  = 10 + pulse * 10;
+    ctx.fillStyle   = '#ffe800';
+
+    // Draw a 4-pointed star shape
+    drawStar(ctx, 0, 0, 4, fr, fr * 0.45);
+
+    ctx.shadowBlur = 0;
+    ctx.restore();
+  }
+
+  // Helper: draw a star polygon
+  function drawStar(ctx, cx, cy, points, outerR, innerR) {
+    ctx.beginPath();
+    for (let i = 0; i < points * 2; i++) {
+      const r     = i % 2 === 0 ? outerR : innerR;
+      const angle = (i * Math.PI) / points - Math.PI / 2;
+      ctx[i === 0 ? 'moveTo' : 'lineTo'](cx + Math.cos(angle) * r, cy + Math.sin(angle) * r);
+    }
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  // ─────────────────────────────────────────────
+  //  HUD & STATE
+  // ─────────────────────────────────────────────
+  function updateHUD() {
+    scoreEl.textContent = score;
+    bestEl.textContent  = best;
+    levelEl.textContent = level;
+  }
+
+  function gameOver() {
+    gameState = 'over';
+    clearInterval(loopTimer);
+
+    if (score > best) {
+      best = score;
+      localStorage.setItem('starSnakeBest', best);
+    }
+
+    // Show game over message
+    messageEl.innerHTML = `
+      <h2>GAME OVER</h2>
+      <p>SCORE: ${score}<br>BEST: ${best}<br>LEVEL: ${level}</p>
+      <div class="blink">— PRESS SPACE TO RETRY —</div>
+    `;
+    messageEl.classList.remove('hidden');
+  }
+
+  function startGame() {
+    messageEl.classList.add('hidden');
+    initGame();
+    gameState = 'playing';
+    startLoop();
+
+    // Keep drawing food animation even between ticks
+    requestAnimationFrame(function loop() {
+      if (gameState === 'playing') draw();
+      requestAnimationFrame(loop);
+    });
+  }
+
+  function togglePause() {
+    if (gameState === 'playing') {
+      gameState = 'paused';
+      clearInterval(loopTimer);
+      messageEl.innerHTML = `
+        <h2>PAUSED</h2>
+        <div class="blink">— PRESS SPACE TO RESUME —</div>
+      `;
+      messageEl.classList.remove('hidden');
+    } else if (gameState === 'paused') {
+      gameState = 'playing';
+      messageEl.classList.add('hidden');
+      startLoop();
+    }
+  }
+
+  // ─────────────────────────────────────────────
+  //  INPUT
+  // ─────────────────────────────────────────────
+  const DIRS = {
+    ArrowUp:    { x:  0, y: -1 },
+    ArrowDown:  { x:  0, y:  1 },
+    ArrowLeft:  { x: -1, y:  0 },
+    ArrowRight: { x:  1, y:  0 },
+    w: { x:  0, y: -1 },
+    s: { x:  0, y:  1 },
+    a: { x: -1, y:  0 },
+    d: { x:  1, y:  0 },
+  };
+
+  document.addEventListener('keydown', e => {
+    if (e.key === ' ' || e.key === 'Spacebar') {
+      e.preventDefault();
+      if (gameState === 'idle' || gameState === 'over') {
+        startGame();
+      } else {
+        togglePause();
+      }
+      return;
+    }
+
+    if (gameState !== 'playing') return;
+
+    const newDir = DIRS[e.key];
+    if (!newDir) return;
+
+    // Prevent reversing directly into yourself
+    if (newDir.x === -dir.x && newDir.y === -dir.y) return;
+
+    nextDir = newDir;
+    e.preventDefault();
+  });
+
+  // ─────────────────────────────────────────────
+  //  INIT
+  // ─────────────────────────────────────────────
+  gameState = 'idle';
+  initGame();
+  draw();
+</script>
+
+</body>
+</html>
