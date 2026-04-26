@@ -29,13 +29,25 @@ Keep the structure simple. Don't add folders or files unless George asks for the
 
 ---
 
+## ⚠️ Worktree Warning
+
+Claude Code sometimes runs in a **git worktree** — a separate folder inside `.claude/worktrees/`. This is NOT the same as the main project folder on the Desktop. Changes made in a worktree are pushed to GitHub but **do not automatically appear in the main folder**.
+
+**After every push, always run this to update the main project folder:**
+```bash
+git -C /Users/brennanpc/Desktop/georges---game pull
+```
+This is required so George can refresh `index.html` in the browser and see the changes.
+
+---
+
 ## 🔄 Git & GitHub Workflow
 
 Follow these rules **every single session**, without being asked:
 
 ### Before starting any work:
 ```bash
-git pull
+git -C /Users/brennanpc/Desktop/georges---game pull
 ```
 Always pull first to get the latest code before making changes.
 
@@ -44,7 +56,9 @@ Always pull first to get the latest code before making changes.
 git add .
 git commit -m "<short description of what changed>"
 git push
+git -C /Users/brennanpc/Desktop/georges---game pull
 ```
+The final `git pull` updates George's actual game folder so the browser shows the new version immediately.
 
 ### Commit message rules:
 - Keep it short and descriptive (under 60 characters)
