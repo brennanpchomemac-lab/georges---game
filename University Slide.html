@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>University Slide</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #0a0a1a;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    font-family: Arial, sans-serif;
+  }
+  canvas {
+    border: 3px solid #4fc3f7;
+    border-radius: 6px;
+    box-shadow: 0 0 40px rgba(79, 195, 247, 0.35);
+  }
+</style>
+</head>
+<body>
+<canvas id="gameCanvas"></canvas>
+<script>
+
+const VERSION = 'v1.0';
+
+// --- Canvas Setup ---
+const canvas = document.getElementById('gameCanvas');
+const ctx    = canvas.getContext('2d');
+canvas.width  = 800;
+canvas.height = 560;
+const W = canvas.width;
+const H = canvas.height;
+
+// --- Perspective Vanishing Point ---
+// This is the "far end" of the slide the player looks toward
+const VPX = W / 2;
+const VPY = H * 0.33;
+
+// --- Near Plane (the opening of the slide closest to the viewer) ---
+// These define the edges of the slide chute at the closest point
+const NEAR_LEFT   = W * 0.06;
+const NEAR_RIGHT  = W * 0.94;
+const NEAR_TOP    = H * 0.08;
+const NEAR_BOTTOM = H * 0.97;
+const NEAR_W      = NEAR_RIGHT - NEAR_LEFT;
+const NEAR_H      = NEAR_BOTTOM - NEAR_TOP;
+const NEAR_CX     = (NEAR_LEFT + NEAR_RIGHT) / 2;
+const NEAR_CY     = (NEAR_TOP  + NEAR_BOTTOM) / 2;
+
+// --- Player ---
+// x, y are normalized world coords: -1 = left/top edge, +1 = right/bottom edge
+const player = {
+  x:     0,     // horizontal position (left/right)
+  y:     0.35,  // vertical position (up/down on the slide)
+  speed: 0.025  // how fast the player can move
+};
+
+// --- Game State ---
+let obstacles   = [];
+let score       = 0;
+let slideSpeed  = 0.009;  // how fast obstacles rush toward you
+let frame       = 0;
+let gameOver    = false;
+let gameStarted = false;
+const keys      = {};
+
+// --- Projection Math ---
+// Converts world coords + depth to screen pixels.
+// t=0 means at the vanishing point (far away), t=1 means at the near plane (right in front).
+function project(nx, ny, t) {
+  const screenX = NEAR_CX + nx * NEAR_W * 0.5;
+  const screenY = NEAR_CY + ny * NEAR_H * 0.5;
+  return {
+    x: VPX + (screenX - VPX) * t,
+    y: VPY + (screenY - VPY) * t
+  };
+}
+
+// Scale a world size by depth (far = tiny, near = full size)
+function projectSize(size, t) {
+  return size * NEAR_W * 0.5 * t;
+}
+
+// --- Draw the Slide Tunnel ---
+function drawTunnel() {
+  // Background: dark blue gradient like a slide interior
+  const bg = ctx.createLinearGradient(0, 0, 0, H);
+  bg.addColorStop(0, '#0b1a3a');
+  bg.addColorStop(1, '#122850');
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, W, H);
+
+  // --- Slide walls (perspective triangles pointing to the vanishing point) ---
+  const corners = {
+    tl: project(-1, -1, 1),
+    tr: project( 1, -1, 1),
+    bl: project(-1,  1, 1),
+    br: project( 1,  1, 1)
+  };
+
+  // Left wall
+  ctx.fillStyle = 'rgba(25, 70, 140, 0.55)';
+  ctx.beginPath();
+  ctx.moveTo(VPX, VPY);
+  ctx.lineTo(corners.tl.x, corners.tl.y);
+  ctx.lineTo(corners.bl.x, corners.bl.y);
+  ctx.closePath();
+  ctx.fill();
+
+  // Right wall
+  ctx.fillStyle = 'rgba(25, 70, 140, 0.55)';
+  ctx.beginPath();
+  ctx.moveTo(VPX, VPY);
+  ctx.lineTo(corners.tr.x, corners.tr.y);
+  ctx.lineTo(corners.br.x, corners.br.y);
+  ctx.closePath();
+  ctx.fill();
+
+  // Ceiling
+  ctx.fillStyle = 'rgba(15, 50, 110, 0.45)';
+  ctx.beginPath();
+  ctx.moveTo(VPX, VPY);
+  ctx.lineTo(corners.tl.x, corners.tl.y);
+  ctx.lineTo(corners.tr.x, corners.tr.y);
+  ctx.closePath();
+  ctx.fill();
+
+  // Floor (slightly lighter so it reads as a slide surface)
+  ctx.fillStyle = 'rgba(30, 90, 160, 0.35)';
+  ctx.beginPath();
+  ctx.moveTo(VPX, VPY);
+  ctx.lineTo(corners.bl.x, corners.bl.y);
+  ctx.lineTo(corners.br.x, corners.br.y);
+  ctx.closePath();
+  ctx.fill();
+
+  // --- Scrolling floor lines to give sense of speed ---
+  // Lines are spaced at equal t-intervals and shift toward the viewer each frame
+  const LINE_COUNT = 14;
+  for (let i = 0; i < LINE_COUNT; i++) {
+    // Offset shifts by frame*slideSpeed so lines appear to rush forward
+    let t = ((i / LINE_COUNT) + (frame * slideSpeed * 1.8)) % 1;
+    t = Math.max(0.04, t);  // never draw right at the vanishing point
+
+    const leftPt  = project(-1,  1, t);
+    const rightPt = project( 1,  1, t);
+
+    // Lines get brighter and thicker as they get closer
+    ctx.strokeStyle = `rgba(79, 195, 247, ${t * 0.28})`;
+    ctx.lineWidth   = t * 2.5;
+    ctx.beginPath();
+    ctx.moveTo(leftPt.x,  leftPt.y);
+    ctx.lineTo(rightPt.x, rightPt.y);
+    ctx.stroke();
+  }
+
+  // --- Vertical guide lines on the walls (for depth feel) ---
+  const WALL_LINES = 5;
+  for (let i = 1; i < WALL_LINES; i++) {
+    const nx = -1 + (2 * i / WALL_LINES);
+    const farPt  = project(nx, -1, 0.04);
+    const nearPt = project(nx, -1, 1);
+    ctx.strokeStyle = 'rgba(79, 195, 247, 0.12)';
+    ctx.lineWidth   = 1;
+    ctx.beginPath();
+    ctx.moveTo(farPt.x,  farPt.y);
+    ctx.lineTo(nearPt.x, nearPt.y);
+    ctx.stroke();
+  }
+
+  // --- Bright edge lines of the tunnel ---
+  ctx.strokeStyle = 'rgba(79, 195, 247, 0.8)';
+  ctx.lineWidth   = 2.5;
+  for (const corner of [corners.tl, corners.tr, corners.bl, corners.br]) {
+    ctx.beginPath();
+    ctx.moveTo(VPX, VPY);
+    ctx.lineTo(corner.x, corner.y);
+    ctx.stroke();
+  }
+
+  // Outline of the near opening (the "frame" around the view)
+  ctx.strokeStyle = 'rgba(79, 195, 247, 0.9)';
+  ctx.lineWidth   = 3;
+  ctx.strokeRect(NEAR_LEFT, NEAR_TOP, NEAR_W, NEAR_H);
+}
+
+// --- Spawn a New Obstacle ---
+function spawnObstacle() {
+  // Random position on the slide surface (keep away from edges so it's fair)
+  const nx   = (Math.random() * 1.5) - 0.75;
+  const ny   = (Math.random() * 1.2) - 0.4;
+  const size = 0.14 + Math.random() * 0.18;
+
+  const colors = ['#e94560', '#ffd700', '#ff6b35', '#00e5ff', '#c97bff'];
+  obstacles.push({
+    nx, ny, size,
+    t:     0.04,   // start far at the vanishing point
+    color: colors[Math.floor(Math.random() * colors.length)],
+  });
+}
+
+// --- Draw All Obstacles ---
+function drawObstacles() {
+  // Sort far-to-near so closer obstacles draw on top
+  obstacles.sort((a, b) => a.t - b.t);
+
+  for (const obs of obstacles) {
+    const center = project(obs.nx, obs.ny, obs.t);
+    const hw     = projectSize(obs.size,        obs.t);  // half-width on screen
+    const hh     = projectSize(obs.size * 0.75, obs.t);  // half-height (slightly squashed box)
+
+    // Drop shadow
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.35)';
+    ctx.fillRect(center.x - hw + 5, center.y - hh + 5, hw * 2, hh * 2);
+
+    // Main obstacle block
+    ctx.fillStyle = obs.color;
+    ctx.fillRect(center.x - hw, center.y - hh, hw * 2, hh * 2);
+
+    // Top highlight to make it look 3D
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.22)';
+    ctx.fillRect(center.x - hw, center.y - hh, hw * 2, hh * 0.35);
+
+    // Border
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.45)';
+    ctx.lineWidth   = 1.5;
+    ctx.strokeRect(center.x - hw, center.y - hh, hw * 2, hh * 2);
+  }
+}
+
+// --- Draw the Player Crosshair ---
+// Shows where the player is positioned on the slide
+function drawPlayer() {
+  const pos = project(player.x, player.y, 0.94);
+  const r   = 18;
+
+  // Outer ring
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.85)';
+  ctx.lineWidth   = 2;
+  ctx.beginPath();
+  ctx.arc(pos.x, pos.y, r, 0, Math.PI * 2);
+  ctx.stroke();
+
+  // Cross lines
+  ctx.beginPath();
+  ctx.moveTo(pos.x - r - 7, pos.y);
+  ctx.lineTo(pos.x + r + 7, pos.y);
+  ctx.moveTo(pos.x, pos.y - r - 7);
+  ctx.lineTo(pos.x, pos.y + r + 7);
+  ctx.stroke();
+
+  // Center dot
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+  ctx.beginPath();
+  ctx.arc(pos.x, pos.y, 3, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+// --- Draw HUD (score, speed, version) ---
+function drawHUD() {
+  ctx.textAlign = 'left';
+  ctx.fillStyle = '#ffffff';
+  ctx.font      = 'bold 20px Arial';
+  ctx.fillText(`Distance: ${Math.floor(score)}m`, 14, 30);
+
+  ctx.fillStyle = 'rgba(79, 195, 247, 0.85)';
+  ctx.font      = '14px Arial';
+  ctx.fillText(`Speed: ${(slideSpeed * 1000).toFixed(1)}`, 14, 52);
+
+  // Version label
+  ctx.fillStyle  = 'rgba(255, 255, 255, 0.35)';
+  ctx.font       = '12px Arial';
+  ctx.textAlign  = 'right';
+  ctx.fillText(VERSION, W - 10, H - 8);
+}
+
+// --- Collision Detection ---
+// When an obstacle is very close (t near 1), check if it overlaps the player
+function checkCollision() {
+  const HIT_RADIUS = 0.13;  // how close the player needs to be to count as a hit
+
+  for (const obs of obstacles) {
+    if (obs.t > 0.87 && obs.t < 1.02) {
+      const dx = Math.abs(player.x - obs.nx);
+      const dy = Math.abs(player.y - obs.ny);
+      if (dx < obs.size + HIT_RADIUS && dy < obs.size * 0.75 + HIT_RADIUS) {
+        gameOver = true;
+      }
+    }
+  }
+}
+
+// --- Game Over Screen ---
+function drawGameOver() {
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+  ctx.fillRect(0, 0, W, H);
+
+  ctx.fillStyle  = '#e94560';
+  ctx.font       = 'bold 54px Arial';
+  ctx.textAlign  = 'center';
+  ctx.fillText('WIPED OUT!', W / 2, H / 2 - 45);
+
+  ctx.fillStyle = '#ffffff';
+  ctx.font      = '28px Arial';
+  ctx.fillText(`Distance: ${Math.floor(score)}m`, W / 2, H / 2 + 10);
+
+  ctx.fillStyle = 'rgba(79, 195, 247, 0.9)';
+  ctx.font      = '20px Arial';
+  ctx.fillText('Press SPACE to ride again', W / 2, H / 2 + 58);
+}
+
+// --- Start Screen ---
+function drawStartScreen() {
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.68)';
+  ctx.fillRect(0, 0, W, H);
+
+  ctx.fillStyle  = '#4fc3f7';
+  ctx.font       = 'bold 56px Arial';
+  ctx.textAlign  = 'center';
+  ctx.fillText('UNIVERSITY SLIDE', W / 2, H / 2 - 65);
+
+  ctx.fillStyle = '#ffffff';
+  ctx.font      = '22px Arial';
+  ctx.fillText('Dodge the obstacles on the way down!', W / 2, H / 2 - 15);
+
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.65)';
+  ctx.font      = '18px Arial';
+  ctx.fillText('Arrow keys to move   ·   Avoid the blocks', W / 2, H / 2 + 28);
+
+  ctx.fillStyle = 'rgba(79, 195, 247, 0.9)';
+  ctx.font      = 'bold 22px Arial';
+  ctx.fillText('Press SPACE to Start', W / 2, H / 2 + 82);
+
+  // Version on start screen too
+  ctx.fillStyle  = 'rgba(255,255,255,0.3)';
+  ctx.font       = '12px Arial';
+  ctx.textAlign  = 'right';
+  ctx.fillText(VERSION, W - 10, H - 8);
+}
+
+// --- Reset / Start a New Run ---
+function resetGame() {
+  obstacles   = [];
+  score       = 0;
+  slideSpeed  = 0.009;
+  frame       = 0;
+  player.x    = 0;
+  player.y    = 0.35;
+  gameOver    = false;
+  gameStarted = true;
+}
+
+// --- Update Game Logic Each Frame ---
+function update() {
+  if (!gameStarted || gameOver) return;
+
+  frame++;
+
+  // --- Move Player with Arrow Keys ---
+  const LIMIT = 0.88;
+  if (keys['ArrowLeft'])  player.x = Math.max(-LIMIT, player.x - player.speed);
+  if (keys['ArrowRight']) player.x = Math.min( LIMIT, player.x + player.speed);
+  if (keys['ArrowUp'])    player.y = Math.max(-0.85,  player.y - player.speed);
+  if (keys['ArrowDown'])  player.y = Math.min( 0.9,   player.y + player.speed);
+
+  // --- Move Obstacles Toward the Player ---
+  for (const obs of obstacles) {
+    obs.t += slideSpeed;
+  }
+
+  // Remove obstacles that flew past the viewer
+  obstacles = obstacles.filter(obs => obs.t < 1.08);
+
+  // --- Spawn New Obstacles (faster spawn rate as score increases) ---
+  const spawnInterval = Math.max(35, 95 - Math.floor(score / 40));
+  if (frame % spawnInterval === 0) {
+    spawnObstacle();
+  }
+
+  // --- Check for Hits ---
+  checkCollision();
+
+  // --- Increase Score and Gradually Speed Up ---
+  score      += slideSpeed * 14;
+  slideSpeed  = Math.min(0.028, 0.009 + score * 0.000028);
+}
+
+// --- Draw Everything ---
+function draw() {
+  ctx.clearRect(0, 0, W, H);
+
+  drawTunnel();
+
+  if (!gameStarted) {
+    drawStartScreen();
+    return;
+  }
+
+  drawObstacles();
+  drawPlayer();
+  drawHUD();
+
+  if (gameOver) drawGameOver();
+}
+
+// --- Main Loop ---
+function loop() {
+  update();
+  draw();
+  requestAnimationFrame(loop);
+}
+
+// --- Keyboard Input ---
+window.addEventListener('keydown', e => {
+  keys[e.key] = true;
+
+  if (e.key === ' ') {
+    e.preventDefault();
+    if (!gameStarted || gameOver) resetGame();
+  }
+
+  // Prevent the page from scrolling while playing
+  if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+    e.preventDefault();
+  }
+});
+
+window.addEventListener('keyup', e => {
+  keys[e.key] = false;
+});
+
+// Kick off the game loop
+loop();
+
+</script>
+</body>
+</html>
