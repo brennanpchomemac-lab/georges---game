@@ -123,6 +123,7 @@
     <div>SCORE <span id="scoreDisplay">0</span></div>
     <div>BEST &nbsp;<span id="bestDisplay">0</span></div>
     <div>LEVEL <span id="levelDisplay">1</span></div>
+    <div>CP &nbsp;&nbsp;<span id="cpDisplay">—</span></div>
   </div>
 
   <div style="position:relative;">
@@ -135,7 +136,7 @@
   </div>
 
   <div class="controls">
-    ARROW KEYS or WASD to steer &nbsp;|&nbsp; SPACE to pause
+    ARROW KEYS or WASD to steer &nbsp;|&nbsp; SPACE to pause &nbsp;|&nbsp; C to use checkpoint
   </div>
 </div>
 
@@ -188,12 +189,14 @@
   const CELL    = canvas.width / COLS;  // pixels per cell
 
   // Game state
-  let snake, dir, nextDir, food, score, best, level, speed, gameState, loopTimer;
+  let snake, dir, nextDir, food, score, best, level, speed, gameState, loopTimer,
+      checkpointMarker, checkpointSave, starsEaten, cpFlash;
 
   // UI elements
   const scoreEl   = document.getElementById('scoreDisplay');
   const bestEl    = document.getElementById('bestDisplay');
   const levelEl   = document.getElementById('levelDisplay');
+  const cpEl      = document.getElementById('cpDisplay');
   const messageEl = document.getElementById('message');
 
   // ─────────────────────────────────────────────
@@ -208,10 +211,14 @@
     ];
     dir     = { x: 1, y: 0 };
     nextDir = { x: 1, y: 0 };
-    score   = 0;
-    level   = 1;
-    speed   = 150;  // ms between moves (lower = faster)
-    best    = parseInt(localStorage.getItem('starSnakeBest') || '0');
+    score            = 0;
+    level            = 1;
+    speed            = 150;  // ms between moves (lower = faster)
+    best             = parseInt(localStorage.getItem('starSnakeBest') || '0');
+    checkpointMarker = null;  // cyan diamond on the board waiting to be collected
+    checkpointSave   = null;  // saved state from last collected checkpoint
+    starsEaten       = 0;     // counts stars toward next checkpoint spawn
+    cpFlash          = 0;     // countdown for "CHECKPOINT SAVED!" flash message
     placeFood();
     updateHUD();
   }
@@ -227,6 +234,20 @@
       }
     }
     food = empty[Math.floor(Math.random() * empty.length)];
+  }
+
+  // Place a checkpoint diamond at a random empty cell (not on snake or food)
+  function placeCheckpoint() {
+    const empty = [];
+    for (let x = 0; x < COLS; x++) {
+      for (let y = 0; y < ROWS; y++) {
+        if (!snake.some(s => s.x === x && s.y === y) &&
+            !(food.x === x && food.y === y)) {
+          empty.push({ x, y });
+        }
+      }
+    }
+    checkpointMarker = empty[Math.floor(Math.random() * empty.length)];
   }
 
   // ─────────────────────────────────────────────
@@ -259,6 +280,14 @@
     // Add new head
     snake.unshift(head);
 
+    // Did the head land on the checkpoint diamond?
+    if (checkpointMarker && head.x === checkpointMarker.x && head.y === checkpointMarker.y) {
+      // Save everything: score, level, speed, full snake shape and direction
+      checkpointSave   = { score, level, speed, dir: { ...dir }, snake: snake.map(s => ({ ...s })) };
+      checkpointMarker = null;
+      cpFlash          = 120; // show "CHECKPOINT SAVED!" for ~2 seconds
+    }
+
     // Did we eat the star?
     if (head.x === food.x && head.y === food.y) {
       // Grow (don't remove tail), add points
@@ -272,6 +301,13 @@
       }
 
       placeFood();
+
+      // Every 3 stars, spawn a checkpoint diamond if one isn't already on the board
+      starsEaten++;
+      if (starsEaten >= 3 && !checkpointMarker) {
+        starsEaten = 0;
+        placeCheckpoint();
+      }
     } else {
       // Normal move: remove tail
       snake.pop();
@@ -359,6 +395,58 @@
 
     ctx.shadowBlur = 0;
     ctx.restore();
+
+    // Draw checkpoint diamond (if one is on the board)
+    if (checkpointMarker) {
+      const pulse = (Math.sin(Date.now() / 400) + 1) / 2;
+      const cx = checkpointMarker.x * CELL + CELL / 2;
+      const cy = checkpointMarker.y * CELL + CELL / 2;
+      const size = CELL / 2 - 2 + pulse * 2;
+
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.shadowColor = '#00e5ff';
+      ctx.shadowBlur  = 12 + pulse * 10;
+      ctx.fillStyle   = '#00e5ff';
+
+      // Diamond shape
+      ctx.beginPath();
+      ctx.moveTo(0, -size);
+      ctx.lineTo(size * 0.65, 0);
+      ctx.lineTo(0, size);
+      ctx.lineTo(-size * 0.65, 0);
+      ctx.closePath();
+      ctx.fill();
+
+      // Inner shine highlight
+      ctx.fillStyle = 'rgba(255,255,255,0.45)';
+      ctx.beginPath();
+      ctx.moveTo(0, -size * 0.5);
+      ctx.lineTo(size * 0.3, 0);
+      ctx.lineTo(0, size * 0.4);
+      ctx.lineTo(-size * 0.3, 0);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.shadowBlur = 0;
+      ctx.restore();
+    }
+
+    // "CHECKPOINT SAVED!" flash message on the canvas
+    if (cpFlash > 0) {
+      cpFlash--;
+      const alpha = Math.min(1, cpFlash / 20);
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.fillStyle   = '#00e5ff';
+      ctx.font        = '10px "Press Start 2P", monospace';
+      ctx.textAlign   = 'center';
+      ctx.shadowColor = '#00e5ff';
+      ctx.shadowBlur  = 15;
+      ctx.fillText('CHECKPOINT SAVED!', canvas.width / 2, canvas.height / 2);
+      ctx.shadowBlur  = 0;
+      ctx.restore();
+    }
   }
 
   // Helper: draw a star polygon
@@ -377,9 +465,11 @@
   //  HUD & STATE
   // ─────────────────────────────────────────────
   function updateHUD() {
-    scoreEl.textContent = score;
-    bestEl.textContent  = best;
-    levelEl.textContent = level;
+    scoreEl.textContent  = score;
+    bestEl.textContent   = best;
+    levelEl.textContent  = level;
+    cpEl.textContent     = checkpointSave ? '★' : '—';
+    cpEl.style.color     = checkpointSave ? '#00e5ff' : '#7070b0';
   }
 
   function gameOver() {
@@ -391,13 +481,46 @@
       localStorage.setItem('starSnakeBest', best);
     }
 
-    // Show game over message
-    messageEl.innerHTML = `
-      <h2>GAME OVER</h2>
-      <p>SCORE: ${score}<br>BEST: ${best}<br>LEVEL: ${level}</p>
-      <div class="blink">— PRESS SPACE TO RETRY —</div>
-    `;
+    // If the player has a banked checkpoint, offer to respawn from it
+    if (checkpointSave) {
+      messageEl.innerHTML = `
+        <h2>GAME OVER</h2>
+        <p>SCORE: ${score} &nbsp; BEST: ${best}</p>
+        <p style="font-size:8px;color:#00e5ff;line-height:2.2">
+          CHECKPOINT: score ${checkpointSave.score}, length ${checkpointSave.snake.length}
+        </p>
+        <div class="blink">SPACE: restart &nbsp;|&nbsp; C: checkpoint</div>
+      `;
+    } else {
+      messageEl.innerHTML = `
+        <h2>GAME OVER</h2>
+        <p>SCORE: ${score}<br>BEST: ${best}<br>LEVEL: ${level}</p>
+        <div class="blink">— PRESS SPACE TO RETRY —</div>
+      `;
+    }
     messageEl.classList.remove('hidden');
+  }
+
+  // Restore the game to the last collected checkpoint state
+  function respawnFromCheckpoint() {
+    const save     = checkpointSave;
+    checkpointSave   = null;
+    checkpointMarker = null;
+    starsEaten       = 0;
+    cpFlash          = 0;
+
+    score   = save.score;
+    level   = save.level;
+    speed   = save.speed;
+    snake   = save.snake.map(s => ({ ...s }));
+    dir     = { ...save.dir };
+    nextDir = { ...save.dir };
+
+    placeFood();
+    updateHUD();
+    messageEl.classList.add('hidden');
+    gameState = 'playing';
+    startLoop();
   }
 
   function startGame() {
@@ -444,6 +567,13 @@
   };
 
   document.addEventListener('keydown', e => {
+    // C key: respawn from checkpoint (only on game over screen when one is saved)
+    if ((e.key === 'c' || e.key === 'C') && gameState === 'over' && checkpointSave) {
+      e.preventDefault();
+      respawnFromCheckpoint();
+      return;
+    }
+
     if (e.key === ' ' || e.key === 'Spacebar') {
       e.preventDefault();
       if (gameState === 'idle' || gameState === 'over') {
