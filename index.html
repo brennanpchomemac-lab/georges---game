@@ -102,6 +102,14 @@
     @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
     #message.hidden { display: none; }
 
+    /* Version label */
+    .version-label {
+      font-size: 7px;
+      color: #303050;
+      letter-spacing: 1px;
+      text-align: center;
+    }
+
     /* Controls hint */
     .controls {
       font-size: 8px;
@@ -137,6 +145,10 @@
 
   <div class="controls">
     ARROW KEYS or WASD to steer &nbsp;|&nbsp; SPACE to pause &nbsp;|&nbsp; C to use checkpoint
+  </div>
+
+  <div class="version-label">
+    <span id="versionDisplay"></span>
   </div>
 </div>
 
@@ -182,6 +194,8 @@
   // ─────────────────────────────────────────────
   //  GAME SETUP
   // ─────────────────────────────────────────────
+  const VERSION = 'v1.2';  // bump this with every update
+
   const canvas  = document.getElementById('gameCanvas');
   const ctx     = canvas.getContext('2d');
   const COLS    = 24;   // grid columns
@@ -599,6 +613,9 @@
   // ─────────────────────────────────────────────
   //  INIT
   // ─────────────────────────────────────────────
+  // Show version number below the game
+  document.getElementById('versionDisplay').textContent = VERSION;
+
   gameState = 'idle';
   initGame();
   draw();
