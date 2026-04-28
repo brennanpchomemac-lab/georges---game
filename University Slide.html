@@ -25,7 +25,7 @@
 <canvas id="gameCanvas"></canvas>
 <script>
 
-const VERSION = 'v1.0';
+const VERSION = 'v1.1';
 
 // --- Canvas Setup ---
 const canvas = document.getElementById('gameCanvas');
@@ -375,18 +375,16 @@ function update() {
   // Remove obstacles that flew past the viewer
   obstacles = obstacles.filter(obs => obs.t < 1.08);
 
-  // --- Spawn New Obstacles (faster spawn rate as score increases) ---
-  const spawnInterval = Math.max(35, 95 - Math.floor(score / 40));
-  if (frame % spawnInterval === 0) {
+  // --- Spawn New Obstacles at a steady rate ---
+  if (frame % 70 === 0) {
     spawnObstacle();
   }
 
   // --- Check for Hits ---
   checkCollision();
 
-  // --- Increase Score and Gradually Speed Up ---
-  score      += slideSpeed * 14;
-  slideSpeed  = Math.min(0.028, 0.009 + score * 0.000028);
+  // --- Increase Score (speed stays constant) ---
+  score += slideSpeed * 14;
 }
 
 // --- Draw Everything ---
