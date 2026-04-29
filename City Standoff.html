@@ -213,13 +213,13 @@
   }
   #status-msg.show { opacity: 1; }
 
-  /* Crosshair */
+  /* Crosshair — position is set via JS to follow the cursor */
   #crosshair {
     position: absolute;
-    top: 50%; left: 50%;
-    transform: translate(-50%, -50%);
+    top: 0; left: 0;
     width: 34px; height: 34px;
     pointer-events: none;
+    transform: translate(-50%, -50%);
   }
   #crosshair::before, #crosshair::after {
     content: '';
@@ -341,7 +341,7 @@
 <body>
 
 <!-- VERSION badge -->
-<div id="version-badge">v1.2</div>
+<div id="version-badge">v1.3</div>
 
 <!-- ══ START SCREEN ══ -->
 <div id="start-screen" class="screen active">
@@ -422,7 +422,7 @@
 
 <script>
 // ── VERSION ──
-const VERSION = 'v1.2';
+const VERSION = 'v1.3';
 
 // ── Map definitions ──
 const MAPS = {
@@ -556,6 +556,13 @@ document.getElementById('change-map-btn').addEventListener('click', () => {
   showScreen(gameoverScreen, false);
   showScreen(startScreen, true);
   cancelAnimationFrame(animFrameId);
+});
+
+// ── Move crosshair to follow the cursor ──
+const crosshairEl = document.getElementById('crosshair');
+gameScreen.addEventListener('mousemove', e => {
+  crosshairEl.style.left = e.clientX + 'px';
+  crosshairEl.style.top  = e.clientY + 'px';
 });
 
 // ── Shoot on click (game screen) ──
