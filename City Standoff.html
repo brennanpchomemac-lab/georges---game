@@ -1,0 +1,1197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>City Standoff</title>
+<style>
+  /* ── Global reset & fonts ── */
+  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Share+Tech+Mono&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --hud-green: #00ff88;
+    --danger-red: #ff2244;
+    --warn-yellow: #ffd700;
+    --dark-bg: #0a0a0f;
+    --panel-bg: rgba(0,0,0,0.75);
+  }
+
+  body {
+    background: var(--dark-bg);
+    color: #fff;
+    font-family: 'Share Tech Mono', monospace;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    overflow: hidden;
+    user-select: none;
+  }
+
+  /* ── VERSION badge ── */
+  #version-badge {
+    position: fixed;
+    top: 10px;
+    right: 14px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    color: rgba(255,255,255,0.35);
+    letter-spacing: 1px;
+    z-index: 999;
+  }
+
+  /* ── Screens (start / game / result / gameover) ── */
+  .screen {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100vw;
+    height: 100vh;
+    position: absolute;
+    top: 0; left: 0;
+  }
+  .screen.active { display: flex; }
+
+  /* ══════════════════════════════
+     START SCREEN
+  ══════════════════════════════ */
+  #start-screen {
+    background: #0a0a0f;
+    gap: 0;
+  }
+
+  #start-screen h1 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(56px, 10vw, 110px);
+    letter-spacing: 6px;
+    color: #fff;
+    text-shadow: 0 0 40px rgba(255,34,68,0.7), 0 0 80px rgba(255,34,68,0.3);
+    line-height: 1;
+    margin-bottom: 6px;
+  }
+
+  #start-screen .subtitle {
+    font-size: 13px;
+    letter-spacing: 4px;
+    color: var(--warn-yellow);
+    margin-bottom: 40px;
+  }
+
+  /* Map picker */
+  .map-picker {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 16px;
+    margin-bottom: 36px;
+    max-width: 680px;
+  }
+
+  .map-card {
+    width: 150px;
+    border: 2px solid rgba(255,255,255,0.15);
+    border-radius: 4px;
+    padding: 14px 10px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.2s, transform 0.15s, box-shadow 0.2s;
+    background: rgba(255,255,255,0.04);
+  }
+  .map-card:hover { border-color: var(--hud-green); transform: translateY(-3px); }
+  .map-card.selected {
+    border-color: var(--hud-green);
+    box-shadow: 0 0 18px rgba(0,255,136,0.35);
+    background: rgba(0,255,136,0.07);
+  }
+  .map-card .flag { font-size: 32px; margin-bottom: 6px; }
+  .map-card .city-name {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 20px;
+    letter-spacing: 2px;
+    color: #fff;
+  }
+  .map-card .city-desc { font-size: 10px; color: rgba(255,255,255,0.45); margin-top: 4px; }
+
+  .controls-hint {
+    font-size: 12px;
+    color: rgba(255,255,255,0.5);
+    letter-spacing: 2px;
+    margin-bottom: 28px;
+    line-height: 1.9;
+    text-align: center;
+  }
+  .controls-hint span { color: var(--hud-green); }
+
+  #start-btn {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 26px;
+    letter-spacing: 5px;
+    padding: 14px 52px;
+    background: var(--danger-red);
+    border: none;
+    color: #fff;
+    cursor: pointer;
+    border-radius: 2px;
+    transition: background 0.2s, transform 0.1s, box-shadow 0.2s;
+    box-shadow: 0 4px 24px rgba(255,34,68,0.4);
+  }
+  #start-btn:hover {
+    background: #ff4466;
+    transform: scale(1.04);
+    box-shadow: 0 6px 32px rgba(255,34,68,0.6);
+  }
+
+  /* ══════════════════════════════
+     GAME SCREEN
+  ══════════════════════════════ */
+  #game-screen { cursor: crosshair; }
+
+  /* Scene canvas */
+  #scene-canvas {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+  }
+
+  /* HUD overlay */
+  #hud {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+  }
+
+  #score-display {
+    position: absolute;
+    top: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px;
+    letter-spacing: 6px;
+    color: #fff;
+    text-shadow: 0 0 10px rgba(0,0,0,0.8);
+  }
+  #score-display .you { color: var(--hud-green); }
+  #score-display .bot { color: var(--danger-red); }
+
+  #map-label {
+    position: absolute;
+    bottom: 16px;
+    left: 16px;
+    font-size: 11px;
+    letter-spacing: 3px;
+    color: rgba(255,255,255,0.4);
+  }
+
+  #round-label {
+    position: absolute;
+    top: 16px;
+    left: 16px;
+    font-size: 11px;
+    letter-spacing: 3px;
+    color: rgba(255,255,255,0.5);
+  }
+
+  /* Status message (DRAW! / TOO EARLY! / etc.) */
+  #status-msg {
+    position: absolute;
+    bottom: 80px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(36px, 6vw, 72px);
+    letter-spacing: 6px;
+    text-align: center;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.15s;
+    text-shadow: 0 0 30px currentColor;
+  }
+  #status-msg.show { opacity: 1; }
+
+  /* Crosshair */
+  #crosshair {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 34px; height: 34px;
+    pointer-events: none;
+  }
+  #crosshair::before, #crosshair::after {
+    content: '';
+    position: absolute;
+    background: rgba(255,255,255,0.85);
+  }
+  #crosshair::before { width: 2px; height: 100%; left: 50%; transform: translateX(-50%); }
+  #crosshair::after  { height: 2px; width: 100%; top: 50%; transform: translateY(-50%); }
+  .crosshair-circle {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%,-50%);
+    width: 34px; height: 34px;
+    border: 2px solid rgba(255,255,255,0.6);
+    border-radius: 50%;
+  }
+
+  /* Flash overlay */
+  #flash {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.05s;
+  }
+
+  /* ── Round result popup ── */
+  #round-result {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%) scale(0.85);
+    background: var(--panel-bg);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 6px;
+    padding: 36px 52px;
+    text-align: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s, transform 0.2s;
+    backdrop-filter: blur(8px);
+    min-width: 280px;
+  }
+  #round-result.show {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+    pointer-events: auto;
+  }
+  #round-result .result-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 52px;
+    letter-spacing: 4px;
+    line-height: 1;
+    margin-bottom: 8px;
+  }
+  #round-result .result-sub {
+    font-size: 12px;
+    letter-spacing: 2px;
+    color: rgba(255,255,255,0.55);
+    margin-bottom: 24px;
+  }
+  #next-round-btn {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 20px;
+    letter-spacing: 4px;
+    padding: 10px 36px;
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.25);
+    color: #fff;
+    cursor: pointer;
+    border-radius: 2px;
+    transition: background 0.2s;
+  }
+  #next-round-btn:hover { background: rgba(255,255,255,0.2); }
+
+  /* ══════════════════════════════
+     GAME OVER SCREEN
+  ══════════════════════════════ */
+  #gameover-screen { background: var(--dark-bg); gap: 18px; }
+
+  #gameover-screen h2 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(48px, 9vw, 96px);
+    letter-spacing: 6px;
+    line-height: 1;
+  }
+
+  #final-result {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px;
+    letter-spacing: 4px;
+  }
+
+  #final-score {
+    font-size: 14px;
+    letter-spacing: 3px;
+    color: rgba(255,255,255,0.55);
+  }
+
+  #gameover-screen .btn-row { display: flex; gap: 14px; margin-top: 10px; }
+
+  .go-btn {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 20px;
+    letter-spacing: 4px;
+    padding: 12px 36px;
+    border: 1px solid rgba(255,255,255,0.2);
+    background: rgba(255,255,255,0.06);
+    color: #fff;
+    cursor: pointer;
+    border-radius: 2px;
+    transition: background 0.2s, border-color 0.2s;
+  }
+  .go-btn:hover { background: rgba(255,255,255,0.15); border-color: rgba(255,255,255,0.4); }
+  .go-btn.primary { background: var(--danger-red); border-color: var(--danger-red); }
+  .go-btn.primary:hover { background: #ff4466; }
+</style>
+</head>
+<body>
+
+<!-- VERSION badge -->
+<div id="version-badge">v1.2</div>
+
+<!-- ══ START SCREEN ══ -->
+<div id="start-screen" class="screen active">
+  <h1>CITY STANDOFF</h1>
+  <p class="subtitle">FIRST PERSON · QUICK DRAW · 5 ROUNDS</p>
+
+  <div class="map-picker">
+    <div class="map-card selected" data-map="newyork">
+      <div class="flag">🗽</div>
+      <div class="city-name">New York</div>
+      <div class="city-desc">Times Square neon</div>
+    </div>
+    <div class="map-card" data-map="tokyo">
+      <div class="flag">🗼</div>
+      <div class="city-name">Tokyo</div>
+      <div class="city-desc">Shibuya back-alleys</div>
+    </div>
+    <div class="map-card" data-map="london">
+      <div class="flag">🎡</div>
+      <div class="city-name">London</div>
+      <div class="city-desc">Foggy Southbank</div>
+    </div>
+    <div class="map-card" data-map="western">
+      <div class="flag">🤠</div>
+      <div class="city-name">Dodge City</div>
+      <div class="city-desc">Wild West sunset</div>
+    </div>
+  </div>
+
+  <p class="controls-hint">
+    Wait for <span>DRAW!</span> — then <span>CLICK</span> or press <span>SPACE</span> to shoot<br>
+    Shoot too early and you <span style="color:var(--danger-red)">LOSE</span> the round!<br>
+    First to <span>3 wins</span> takes the match
+  </p>
+
+  <button id="start-btn">START GAME</button>
+</div>
+
+<!-- ══ GAME SCREEN ══ -->
+<div id="game-screen" class="screen">
+  <canvas id="scene-canvas"></canvas>
+
+  <div id="hud">
+    <div id="round-label">ROUND <span id="round-num">1</span> / 5</div>
+    <div id="score-display">
+      <span class="you" id="score-you">YOU: 0</span>
+      &nbsp;—&nbsp;
+      <span class="bot" id="score-bot">BOT: 0</span>
+    </div>
+    <div id="map-label" id="map-name-label"></div>
+
+    <div id="crosshair">
+      <div class="crosshair-circle"></div>
+    </div>
+
+    <div id="status-msg"></div>
+    <div id="flash"></div>
+  </div>
+
+  <!-- Round result card -->
+  <div id="round-result">
+    <div class="result-title" id="result-title">WIN</div>
+    <div class="result-sub" id="result-sub">Nice shot!</div>
+    <button id="next-round-btn">NEXT ROUND</button>
+  </div>
+</div>
+
+<!-- ══ GAME OVER SCREEN ══ -->
+<div id="gameover-screen" class="screen">
+  <h2 id="gameover-title">GAME OVER</h2>
+  <div id="final-result"></div>
+  <div id="final-score"></div>
+  <div class="btn-row">
+    <button class="go-btn primary" id="play-again-btn">PLAY AGAIN</button>
+    <button class="go-btn" id="change-map-btn">CHANGE MAP</button>
+  </div>
+</div>
+
+<script>
+// ── VERSION ──
+const VERSION = 'v1.2';
+
+// ── Map definitions ──
+const MAPS = {
+  newyork: {
+    label: '📍 NEW YORK CITY',
+    skyTop: '#1a0a2e',
+    skyBottom: '#2d1a0a',
+    buildingColors: ['#1c1c2e','#242436','#1a2030','#0f1520'],
+    accentColor: '#ff6030',
+    fogColor: 'rgba(255,80,30,0.13)',
+    windowColor: '#ffd070',
+    groundColor: '#111118',
+    groundLine: '#ff6030',
+    ambientLight: 'rgba(255,100,40,0.18)',
+  },
+  tokyo: {
+    label: '📍 TOKYO · SHIBUYA',
+    skyTop: '#0a0020',
+    skyBottom: '#100030',
+    buildingColors: ['#0d0d1a','#12122a','#0a1020','#080818'],
+    accentColor: '#ff00cc',
+    fogColor: 'rgba(180,0,220,0.12)',
+    windowColor: '#cc44ff',
+    groundColor: '#080810',
+    groundLine: '#ff00cc',
+    ambientLight: 'rgba(200,0,255,0.15)',
+  },
+  london: {
+    label: '📍 LONDON · SOUTHBANK',
+    skyTop: '#101418',
+    skyBottom: '#1a2028',
+    buildingColors: ['#1a1c20','#222428','#181c22','#141820'],
+    accentColor: '#88bbff',
+    fogColor: 'rgba(140,180,255,0.14)',
+    windowColor: '#aaccff',
+    groundColor: '#0e1014',
+    groundLine: '#88bbff',
+    ambientLight: 'rgba(100,160,255,0.12)',
+  },
+  western: {
+    label: '📍 DODGE CITY · KANSAS',
+    skyTop: '#7a2e00',
+    skyBottom: '#e86010',
+    buildingColors: ['#5c3a1a','#6b4520','#4a2e10','#7a5030'],
+    accentColor: '#f0a840',
+    fogColor: 'rgba(220,140,40,0.20)',
+    windowColor: '#ffe090',
+    groundColor: '#3a2a10',
+    groundLine: '#c08030',
+    ambientLight: 'rgba(240,160,60,0.25)',
+    isWestern: true,
+  },
+};
+
+// ── Game state ──
+let selectedMap = 'newyork';
+let playerScore = 0;
+let botScore = 0;
+let currentRound = 0;
+const TOTAL_ROUNDS = 5;
+const WINS_NEEDED = 3;
+
+// Round phase: 'waiting' | 'countdown' | 'draw' | 'done'
+let roundPhase = 'waiting';
+let drawTimeout = null;
+let botShootTimeout = null;
+let drawTime = 0; // when DRAW! appeared
+
+// ── Bot movement state ──
+// The bot drifts left/right at varying speeds and randomly changes direction
+let botX = 0;          // current offset from screen centre (pixels)
+let botSpeed = 0;      // current pixels-per-frame velocity
+let botDir = 1;        // 1 = right, -1 = left
+let botSpeedChangeTimer = 0;  // counts down frames until next speed change
+const canvas = document.getElementById('scene-canvas');
+const ctx = canvas.getContext('2d');
+let animFrameId = null;
+let sceneTime = 0;
+
+// Bot reaction time range (ms) — gets harder each round
+const BOT_MIN_MS = 420;
+const BOT_MAX_MS = 1100;
+
+// ── DOM refs ──
+const startScreen    = document.getElementById('start-screen');
+const gameScreen     = document.getElementById('game-screen');
+const gameoverScreen = document.getElementById('gameover-screen');
+const statusMsg      = document.getElementById('status-msg');
+const flashEl        = document.getElementById('flash');
+const roundResult    = document.getElementById('round-result');
+const resultTitle    = document.getElementById('result-title');
+const resultSub      = document.getElementById('result-sub');
+const scoreYouEl     = document.getElementById('score-you');
+const scoreBotEl     = document.getElementById('score-bot');
+const roundNumEl     = document.getElementById('round-num');
+const mapLabelEl     = document.getElementById('map-label');
+
+// ── Map card selection ──
+document.querySelectorAll('.map-card').forEach(card => {
+  card.addEventListener('click', () => {
+    document.querySelectorAll('.map-card').forEach(c => c.classList.remove('selected'));
+    card.classList.add('selected');
+    selectedMap = card.dataset.map;
+  });
+});
+
+// ── Start button ──
+document.getElementById('start-btn').addEventListener('click', startGame);
+
+// ── Next round button ──
+// stopPropagation prevents the click from bubbling up to the game screen
+// and accidentally triggering a shot when the player clicks Next Round
+document.getElementById('next-round-btn').addEventListener('click', (e) => {
+  e.stopPropagation();
+  roundResult.classList.remove('show');
+  if (playerScore >= WINS_NEEDED || botScore >= WINS_NEEDED || currentRound >= TOTAL_ROUNDS) {
+    showGameOver();
+  } else {
+    beginRound();
+  }
+});
+
+// ── Play again / change map ──
+document.getElementById('play-again-btn').addEventListener('click', () => {
+  showScreen(gameoverScreen, false);
+  resetGame();
+  showScreen(gameScreen, true);
+  beginRound();
+});
+document.getElementById('change-map-btn').addEventListener('click', () => {
+  showScreen(gameoverScreen, false);
+  showScreen(startScreen, true);
+  cancelAnimationFrame(animFrameId);
+});
+
+// ── Shoot on click (game screen) ──
+gameScreen.addEventListener('click', handleShoot);
+
+// ── Shoot on Space ──
+document.addEventListener('keydown', e => {
+  if (e.code === 'Space' && gameScreen.classList.contains('active')) {
+    e.preventDefault();
+    handleShoot();
+  }
+});
+
+// ── Canvas resize ──
+function resizeCanvas() {
+  canvas.width  = window.innerWidth;
+  canvas.height = window.innerHeight;
+}
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
+
+// ══════════════════════════════
+//  SCREEN HELPERS
+// ══════════════════════════════
+function showScreen(el, show) {
+  if (show) el.classList.add('active');
+  else el.classList.remove('active');
+}
+
+// ══════════════════════════════
+//  GAME FLOW
+// ══════════════════════════════
+function startGame() {
+  showScreen(startScreen, false);
+  showScreen(gameScreen, true);
+  resetGame();
+  beginRound();
+}
+
+function resetGame() {
+  playerScore = 0;
+  botScore = 0;
+  currentRound = 0;
+  updateHUD();
+}
+
+function beginRound() {
+  currentRound++;
+  roundPhase = 'waiting';
+  clearTimeout(drawTimeout);
+  clearTimeout(botShootTimeout);
+
+  // Reset bot movement — starts near centre, picks a random initial speed/direction
+  botX = (Math.random() - 0.5) * 60;
+  botDir = Math.random() < 0.5 ? 1 : -1;
+  // Bot moves faster in later rounds (scales from ~1.5 to ~3.5 px/frame)
+  botSpeed = 1.5 + (currentRound - 1) * 0.4 + Math.random() * 1.2;
+  botSpeedChangeTimer = 40 + Math.floor(Math.random() * 50);
+
+  updateHUD();
+  setStatus('', '');
+  mapLabelEl.textContent = MAPS[selectedMap].label;
+
+  // Start scene animation
+  if (animFrameId) cancelAnimationFrame(animFrameId);
+  sceneTime = 0;
+  animateScene();
+
+  // After a 1.5–3s random wait, trigger DRAW!
+  const waitMs = 1500 + Math.random() * 1500;
+  roundPhase = 'countdown';
+
+  drawTimeout = setTimeout(() => {
+    roundPhase = 'draw';
+    drawTime = performance.now();
+    setStatus('DRAW!', 'var(--warn-yellow)');
+
+    // Bot reaction
+    const difficultyBonus = (currentRound - 1) * 60; // gets faster each round
+    const botMs = Math.max(
+      BOT_MIN_MS - difficultyBonus,
+      200
+    ) + Math.random() * (BOT_MAX_MS - BOT_MIN_MS);
+
+    botShootTimeout = setTimeout(() => {
+      if (roundPhase === 'draw') {
+        botWins('Bot was faster!');
+      }
+    }, botMs);
+  }, waitMs);
+}
+
+function handleShoot() {
+  if (roundPhase === 'countdown') {
+    // Too early!
+    clearTimeout(drawTimeout);
+    roundPhase = 'done';
+    setStatus('TOO EARLY!', 'var(--danger-red)');
+    triggerFlash('rgba(255,0,0,0.35)');
+    setTimeout(() => {
+      botWins('You jumped the gun!');
+    }, 600);
+    return;
+  }
+
+  if (roundPhase !== 'draw') return;
+
+  // Player wins this round
+  clearTimeout(botShootTimeout);
+  roundPhase = 'done';
+
+  const reactionMs = Math.round(performance.now() - drawTime);
+  triggerFlash('rgba(255,255,255,0.55)');
+  setStatus('HIT!', 'var(--hud-green)');
+
+  setTimeout(() => {
+    playerScore++;
+    updateHUD();
+    showRoundResult(true, `Reaction: ${reactionMs}ms`);
+  }, 350);
+}
+
+function botWins(reason) {
+  clearTimeout(botShootTimeout);
+  roundPhase = 'done';
+  triggerFlash('rgba(255,0,0,0.45)');
+  setStatus('BOT WINS!', 'var(--danger-red)');
+
+  setTimeout(() => {
+    botScore++;
+    updateHUD();
+    showRoundResult(false, reason);
+  }, 350);
+}
+
+function showRoundResult(playerWon, subtitle) {
+  if (playerWon) {
+    resultTitle.textContent = 'YOU WIN!';
+    resultTitle.style.color = 'var(--hud-green)';
+  } else {
+    resultTitle.textContent = 'YOU LOSE';
+    resultTitle.style.color = 'var(--danger-red)';
+  }
+  document.getElementById('result-sub').textContent = subtitle;
+
+  // Check if match is over
+  if (playerScore >= WINS_NEEDED || botScore >= WINS_NEEDED || currentRound >= TOTAL_ROUNDS) {
+    document.getElementById('next-round-btn').textContent = 'SEE RESULTS';
+  } else {
+    document.getElementById('next-round-btn').textContent = 'NEXT ROUND';
+  }
+
+  roundResult.classList.add('show');
+}
+
+function showGameOver() {
+  showScreen(gameScreen, false);
+  showScreen(gameoverScreen, true);
+  cancelAnimationFrame(animFrameId);
+
+  const youWin = playerScore > botScore;
+  const tied   = playerScore === botScore;
+
+  document.getElementById('gameover-title').textContent =
+    tied ? 'IT\'S A TIE' : (youWin ? 'VICTORY!' : 'DEFEATED');
+  document.getElementById('gameover-title').style.color =
+    tied ? 'var(--warn-yellow)' : (youWin ? 'var(--hud-green)' : 'var(--danger-red)');
+
+  document.getElementById('final-result').textContent =
+    tied ? 'Dead even — nice match.' : (youWin ? 'You outgunned the bot!' : 'The bot was too fast this time.');
+  document.getElementById('final-score').textContent =
+    `FINAL SCORE  —  YOU ${playerScore} · BOT ${botScore}`;
+}
+
+// ══════════════════════════════
+//  HUD UPDATES
+// ══════════════════════════════
+function updateHUD() {
+  scoreYouEl.textContent = `YOU: ${playerScore}`;
+  scoreBotEl.textContent = `BOT: ${botScore}`;
+  roundNumEl.textContent = currentRound;
+}
+
+function setStatus(text, color) {
+  statusMsg.textContent = text;
+  statusMsg.style.color = color;
+  if (text) statusMsg.classList.add('show');
+  else statusMsg.classList.remove('show');
+}
+
+function triggerFlash(color) {
+  flashEl.style.background = color;
+  flashEl.style.opacity = '1';
+  setTimeout(() => { flashEl.style.opacity = '0'; }, 120);
+}
+
+// ══════════════════════════════
+//  SCENE RENDERER (first-person city view)
+// ══════════════════════════════
+function animateScene() {
+  sceneTime += 0.016;
+
+  // ── Step bot position ──
+  // Move bot by current speed in current direction
+  botX += botDir * botSpeed;
+
+  // Bounce off edges — keep bot within ~35% of half-screen width
+  const maxOffset = window.innerWidth * 0.35;
+  if (botX > maxOffset) {
+    botX = maxOffset;
+    botDir = -1;
+    botSpeed = 1.5 + (currentRound - 1) * 0.4 + Math.random() * 1.8;
+  } else if (botX < -maxOffset) {
+    botX = -maxOffset;
+    botDir = 1;
+    botSpeed = 1.5 + (currentRound - 1) * 0.4 + Math.random() * 1.8;
+  }
+
+  // Randomly change speed/direction on a timer
+  botSpeedChangeTimer--;
+  if (botSpeedChangeTimer <= 0) {
+    botDir = Math.random() < 0.5 ? 1 : -1;
+    botSpeed = 1.0 + (currentRound - 1) * 0.4 + Math.random() * 2.5;
+    // Random pause: occasionally the bot briefly slows right down (hesitation)
+    if (Math.random() < 0.2) botSpeed = 0.3;
+    botSpeedChangeTimer = 30 + Math.floor(Math.random() * 70);
+  }
+
+  drawScene();
+  animFrameId = requestAnimationFrame(animateScene);
+}
+
+function drawScene() {
+  const W = canvas.width;
+  const H = canvas.height;
+  const map = MAPS[selectedMap];
+
+  ctx.clearRect(0, 0, W, H);
+
+  // ── Sky gradient ──
+  const skyGrad = ctx.createLinearGradient(0, 0, 0, H * 0.58);
+  skyGrad.addColorStop(0, map.skyTop);
+  skyGrad.addColorStop(1, map.skyBottom);
+  ctx.fillStyle = skyGrad;
+  ctx.fillRect(0, 0, W, H * 0.58);
+
+  // ── Ground ──
+  const groundGrad = ctx.createLinearGradient(0, H * 0.58, 0, H);
+  groundGrad.addColorStop(0, map.groundColor);
+  groundGrad.addColorStop(1, '#000');
+  ctx.fillStyle = groundGrad;
+  ctx.fillRect(0, H * 0.58, W, H * 0.42);
+
+  // ── Perspective ground lines ──
+  ctx.strokeStyle = map.groundLine;
+  ctx.globalAlpha = 0.18;
+  ctx.lineWidth = 1;
+  const vp = { x: W / 2, y: H * 0.58 };
+  for (let i = -8; i <= 8; i++) {
+    ctx.beginPath();
+    ctx.moveTo(vp.x, vp.y);
+    ctx.lineTo(vp.x + i * W * 0.14, H);
+    ctx.stroke();
+  }
+  // Horizontal ground lines
+  for (let row = 0; row < 6; row++) {
+    const t = row / 5;
+    const y = H * 0.58 + (H * 0.42) * (t * t);
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.lineTo(W, y);
+    ctx.globalAlpha = 0.08 + t * 0.1;
+    ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+
+  // ── Buildings (background layer) ──
+  if (map.isWestern) {
+    drawWesternScene(ctx, W, H, map);
+  } else {
+    drawBuildings(ctx, W, H, map, 0.22, 0.58, 6, 80, 200, 'bg');
+
+    // ── Fog / atmosphere ──
+    const fogGrad = ctx.createLinearGradient(0, 0, 0, H * 0.6);
+    fogGrad.addColorStop(0.4, 'transparent');
+    fogGrad.addColorStop(1, map.fogColor);
+    ctx.fillStyle = fogGrad;
+    ctx.fillRect(0, 0, W, H * 0.6);
+
+    // ── Buildings (foreground sides) ──
+    drawBuildings(ctx, W, H, map, 0.05, 0.58, 3, 120, 280, 'fg-left',  0, W * 0.28);
+    drawBuildings(ctx, W, H, map, 0.05, 0.58, 3, 120, 280, 'fg-right', W * 0.72, W);
+
+    // ── Ambient glow at horizon ──
+    const ambGrad = ctx.createRadialGradient(W/2, H * 0.58, 0, W/2, H * 0.58, W * 0.55);
+    ambGrad.addColorStop(0, map.ambientLight);
+    ambGrad.addColorStop(1, 'transparent');
+    ctx.fillStyle = ambGrad;
+    ctx.fillRect(0, H * 0.3, W, H * 0.4);
+  }
+
+  // ── Bot character ──
+  drawBot(ctx, W, H, map);
+}
+
+// Building drawing helper
+function drawBuildings(ctx, W, H, map, minH, groundY, count, minW, maxW, layer, xStart, xEnd) {
+  const seed = layer === 'bg' ? 42 : (layer === 'fg-left' ? 77 : 133);
+  let x = (xStart !== undefined) ? xStart : 0;
+  const endX = (xEnd !== undefined) ? xEnd : W;
+
+  // Deterministic pseudo-random from seed
+  const rand = (n, offset=0) => {
+    const s = Math.sin(seed + n + offset) * 43758.5453;
+    return s - Math.floor(s);
+  };
+
+  for (let i = 0; i < count; i++) {
+    const bw = minW + rand(i) * (maxW - minW);
+    const bh = H * (minH + rand(i, 1) * 0.3);
+    const by = H * groundY - bh;
+    const bx = x + rand(i, 2) * 10;
+
+    // Building body
+    ctx.fillStyle = map.buildingColors[i % map.buildingColors.length];
+    ctx.fillRect(bx, by, bw, bh + 2);
+
+    // Building edge highlight
+    ctx.strokeStyle = map.accentColor;
+    ctx.globalAlpha = 0.08;
+    ctx.lineWidth = 1;
+    ctx.strokeRect(bx, by, bw, bh);
+    ctx.globalAlpha = 1;
+
+    // Windows
+    const winCols = Math.floor(bw / 18);
+    const winRows = Math.floor(bh / 22);
+    for (let row = 0; row < winRows; row++) {
+      for (let col = 0; col < winCols; col++) {
+        const lit = rand(i * 100 + row * 10 + col, 3) > 0.45;
+        if (!lit) continue;
+        // Subtle flicker
+        const flicker = 0.55 + 0.45 * (rand(i + row + col + Math.floor(sceneTime * 0.5), 7));
+        ctx.fillStyle = map.windowColor;
+        ctx.globalAlpha = flicker * 0.75;
+        ctx.fillRect(bx + col * 18 + 5, by + row * 22 + 5, 8, 10);
+        ctx.globalAlpha = 1;
+      }
+    }
+
+    x += bw - 20 + rand(i, 4) * 20;
+    if (x > endX + 100) break;
+  }
+}
+
+// ══════════════════════════════
+//  WESTERN SCENE — Dodge City saloon street
+// ══════════════════════════════
+function drawWesternScene(ctx, W, H, map) {
+  const groundY = H * 0.58;
+
+  // ── Sun near horizon ──
+  const sunX = W * 0.78;
+  const sunY = H * 0.28;
+  const sunGlow = ctx.createRadialGradient(sunX, sunY, 0, sunX, sunY, W * 0.28);
+  sunGlow.addColorStop(0, 'rgba(255,220,80,0.55)');
+  sunGlow.addColorStop(0.25, 'rgba(255,140,30,0.25)');
+  sunGlow.addColorStop(1, 'transparent');
+  ctx.fillStyle = sunGlow;
+  ctx.fillRect(0, 0, W, H * 0.6);
+  ctx.beginPath();
+  ctx.arc(sunX, sunY, 28, 0, Math.PI * 2);
+  ctx.fillStyle = '#ffe870';
+  ctx.fill();
+
+  // ── Dust haze at ground ──
+  const hazeGrad = ctx.createLinearGradient(0, groundY - 40, 0, groundY + 60);
+  hazeGrad.addColorStop(0, 'transparent');
+  hazeGrad.addColorStop(1, 'rgba(200,130,40,0.28)');
+  ctx.fillStyle = hazeGrad;
+  ctx.fillRect(0, groundY - 40, W, 100);
+
+  // ── Left saloon (big, foreground) ──
+  drawSaloon(ctx, W * 0.02, groundY, W * 0.26, H * 0.34, '#5c3a1a', '#7a5030', '#f0a840', map.windowColor);
+
+  // ── Right saloon ──
+  drawSaloon(ctx, W * 0.72, groundY, W * 0.27, H * 0.30, '#4a2e10', '#6b4520', '#f0a840', map.windowColor);
+
+  // ── Background buildings (smaller, centre) ──
+  drawSaloon(ctx, W * 0.30, groundY, W * 0.12, H * 0.18, '#3a2010', '#5a3820', '#c08030', map.windowColor, true);
+  drawSaloon(ctx, W * 0.44, groundY, W * 0.10, H * 0.15, '#2e1a0a', '#4a2e10', '#c08030', map.windowColor, true);
+  drawSaloon(ctx, W * 0.56, groundY, W * 0.14, H * 0.20, '#3a2010', '#5a3820', '#c08030', map.windowColor, true);
+
+  // ── Wooden fence posts on both sides ──
+  drawFencePosts(ctx, W, groundY, map.accentColor);
+
+  // ── Tumbleweed rolling ──
+  const twX = ((sceneTime * 55) % (W + 80)) - 40;
+  drawTumbleweed(ctx, twX, groundY + 14, 14);
+}
+
+// Draw a single saloon building with false-front facade
+function drawSaloon(ctx, x, groundY, width, height, wallColor, roofColor, accentColor, windowColor, small=false) {
+  const roofH = small ? height * 0.18 : height * 0.22;
+
+  // Main wall
+  ctx.fillStyle = wallColor;
+  ctx.fillRect(x, groundY - height, width, height);
+
+  // Wall wood planks (horizontal lines)
+  ctx.strokeStyle = 'rgba(0,0,0,0.18)';
+  ctx.lineWidth = 1;
+  const plankCount = Math.floor(height / 10);
+  for (let p = 0; p < plankCount; p++) {
+    ctx.beginPath();
+    const py = groundY - height + p * 10;
+    ctx.moveTo(x, py);
+    ctx.lineTo(x + width, py);
+    ctx.stroke();
+  }
+
+  // False front (raised facade above roof line)
+  ctx.fillStyle = roofColor;
+  ctx.fillRect(x - 4, groundY - height - roofH, width + 8, roofH + 4);
+
+  // Facade outline
+  ctx.strokeStyle = accentColor;
+  ctx.globalAlpha = 0.5;
+  ctx.lineWidth = 2;
+  ctx.strokeRect(x - 4, groundY - height - roofH, width + 8, roofH + 4);
+  ctx.globalAlpha = 1;
+
+  if (!small) {
+    // SALOON sign on facade
+    ctx.fillStyle = '#2a1400';
+    ctx.fillRect(x + width * 0.15, groundY - height - roofH + 6, width * 0.7, roofH * 0.55);
+    ctx.font = `bold ${Math.round(roofH * 0.38)}px 'Share Tech Mono', monospace`;
+    ctx.fillStyle = accentColor;
+    ctx.textAlign = 'center';
+    ctx.fillText('SALOON', x + width / 2, groundY - height - roofH + roofH * 0.44);
+
+    // Porch overhang
+    ctx.fillStyle = roofColor;
+    ctx.fillRect(x - 8, groundY - height * 0.42, width + 16, 10);
+    ctx.strokeStyle = accentColor;
+    ctx.globalAlpha = 0.3;
+    ctx.lineWidth = 1;
+    ctx.strokeRect(x - 8, groundY - height * 0.42, width + 16, 10);
+    ctx.globalAlpha = 1;
+
+    // Porch posts
+    const postCount = Math.floor(width / 40);
+    for (let p = 0; p <= postCount; p++) {
+      const px = x + p * (width / postCount);
+      ctx.fillStyle = '#3a2010';
+      ctx.fillRect(px - 4, groundY - height * 0.42 + 10, 8, height * 0.42);
+    }
+  }
+
+  // Windows
+  const winW = small ? width * 0.25 : width * 0.22;
+  const winH = small ? winW * 1.3 : winW * 1.5;
+  const winRow = groundY - height + height * (small ? 0.25 : 0.2);
+  const winCols = small ? 1 : 2;
+  for (let w = 0; w < winCols; w++) {
+    const wx = x + (width / (winCols + 1)) * (w + 1) - winW / 2;
+    // Window glow
+    const winGlow = ctx.createRadialGradient(wx + winW/2, winRow + winH/2, 0, wx + winW/2, winRow + winH/2, winW);
+    winGlow.addColorStop(0, windowColor);
+    winGlow.addColorStop(1, 'transparent');
+    ctx.fillStyle = winGlow;
+    ctx.globalAlpha = 0.4;
+    ctx.fillRect(wx - winW * 0.5, winRow - winH * 0.5, winW * 2, winH * 2);
+    ctx.globalAlpha = 1;
+    // Window frame
+    ctx.fillStyle = windowColor;
+    ctx.globalAlpha = 0.7;
+    ctx.fillRect(wx, winRow, winW, winH);
+    ctx.globalAlpha = 1;
+    ctx.strokeStyle = '#2a1400';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(wx, winRow, winW, winH);
+  }
+}
+
+// Wooden fence posts along the bottom sides
+function drawFencePosts(ctx, W, groundY, accentColor) {
+  ctx.fillStyle = '#5c3a1a';
+  ctx.strokeStyle = accentColor;
+  ctx.globalAlpha = 0.5;
+  const postW = 8;
+  const postH = 28;
+  const spacing = 22;
+  // Left side
+  for (let i = 0; i < 6; i++) {
+    const px = W * 0.28 + i * spacing;
+    ctx.fillRect(px, groundY - postH, postW, postH);
+    ctx.strokeRect(px, groundY - postH, postW, postH);
+  }
+  // Right side
+  for (let i = 0; i < 6; i++) {
+    const px = W * 0.56 + i * spacing;
+    ctx.fillRect(px, groundY - postH, postW, postH);
+    ctx.strokeRect(px, groundY - postH, postW, postH);
+  }
+  // Horizontal rail
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.moveTo(W * 0.28, groundY - postH * 0.55);
+  ctx.lineTo(W * 0.28 + 6 * spacing, groundY - postH * 0.55);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(W * 0.56, groundY - postH * 0.55);
+  ctx.lineTo(W * 0.56 + 6 * spacing, groundY - postH * 0.55);
+  ctx.stroke();
+  ctx.globalAlpha = 1;
+}
+
+// Rolling tumbleweed
+function drawTumbleweed(ctx, x, y, r) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(sceneTime * 3);
+  ctx.strokeStyle = '#8b6030';
+  ctx.lineWidth = 1.5;
+  ctx.globalAlpha = 0.7;
+  for (let i = 0; i < 6; i++) {
+    const angle = (i / 6) * Math.PI;
+    ctx.beginPath();
+    ctx.ellipse(0, 0, r, r * 0.4, angle, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+  ctx.restore();
+}
+
+
+function drawBot(ctx, W, H, map) {
+  const cx = W / 2;
+  const groundY = H * 0.58;
+
+  // Bot uses the live botX position updated every frame by animateScene
+  // Small vertical bob based on movement speed (faster = more bounce)
+  const bobY = Math.abs(Math.sin(sceneTime * 4)) * (botSpeed * 0.6);
+  // Lean slightly in the direction of travel — makes movement feel physical
+  const leanAngle = botDir * Math.min(botSpeed * 0.018, 0.12);
+
+  const bodyW = Math.min(W * 0.11, 90);
+  const bodyH = bodyW * 2.1;
+  const headR = bodyW * 0.42;
+
+  const botCX = W / 2 + botX;
+  const botFeetY = groundY - 2 + bobY;
+  const botTopY  = botFeetY - bodyH - headR * 2;
+
+  // Shadow on ground (doesn't rotate with lean)
+  ctx.beginPath();
+  ctx.ellipse(botCX, groundY + 4, bodyW * 0.7, 8, 0, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(0,0,0,0.55)';
+  ctx.fill();
+
+  // Save context and apply lean rotation around bot's feet
+  ctx.save();
+  ctx.translate(botCX, botFeetY);
+  ctx.rotate(leanAngle);
+
+  // Body
+  ctx.fillStyle = '#111115';
+  ctx.beginPath();
+  ctx.rect(-bodyW/2, -bodyH, bodyW, bodyH);
+  ctx.fill();
+
+  // Body outline glow
+  ctx.strokeStyle = map.accentColor;
+  ctx.globalAlpha = 0.35;
+  ctx.lineWidth = 2;
+  ctx.strokeRect(-bodyW/2, -bodyH, bodyW, bodyH);
+  ctx.globalAlpha = 1;
+
+  // Head
+  ctx.beginPath();
+  ctx.arc(0, -bodyH - headR, headR, 0, Math.PI * 2);
+  ctx.fillStyle = '#0e0e14';
+  ctx.fill();
+  ctx.strokeStyle = map.accentColor;
+  ctx.globalAlpha = 0.4;
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  ctx.globalAlpha = 1;
+
+  // Eyes — glowing
+  const eyeY = -bodyH - headR + 2;
+  const eyeSpacing = headR * 0.45;
+  [-eyeSpacing, eyeSpacing].forEach(ex => {
+    const eyeGlow = ctx.createRadialGradient(ex, eyeY, 0, ex, eyeY, 8);
+    eyeGlow.addColorStop(0, map.accentColor);
+    eyeGlow.addColorStop(1, 'transparent');
+    ctx.fillStyle = eyeGlow;
+    ctx.beginPath();
+    ctx.arc(ex, eyeY, 8, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = map.accentColor;
+    ctx.beginPath();
+    ctx.arc(ex, eyeY, 3, 0, Math.PI * 2);
+    ctx.fill();
+  });
+
+  // Gun arm
+  const armLength = bodyW * 0.95;
+  const armY = -bodyH * 0.55;
+  ctx.strokeStyle = '#1a1a22';
+  ctx.lineWidth = bodyW * 0.22;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(bodyW/2, armY);
+  ctx.lineTo(bodyW/2 + armLength, armY + 10);
+  ctx.stroke();
+  // Gun barrel
+  ctx.strokeStyle = '#333';
+  ctx.lineWidth = bodyW * 0.1;
+  ctx.beginPath();
+  ctx.moveTo(bodyW/2 + armLength * 0.5, armY + 5);
+  ctx.lineTo(bodyW/2 + armLength + 14, armY + 12);
+  ctx.stroke();
+
+  // [ TARGET ] label above head
+  ctx.font = `bold ${Math.round(bodyW * 0.22)}px 'Share Tech Mono', monospace`;
+  ctx.fillStyle = map.accentColor;
+  ctx.globalAlpha = 0.7;
+  ctx.textAlign = 'center';
+  ctx.fillText('[ TARGET ]', 0, -bodyH - headR * 2 - 14);
+  ctx.globalAlpha = 1;
+
+  ctx.restore();
+}
+
+</script>
+</body>
+</html>
