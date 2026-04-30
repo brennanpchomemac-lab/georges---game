@@ -553,7 +553,7 @@
 <body>
 
 <!-- VERSION badge -->
-<div id="version-badge">v2.0</div>
+<div id="version-badge">v2.1</div>
 
 <!-- ══ START SCREEN ══ -->
 <div id="start-screen" class="screen active">
@@ -721,21 +721,6 @@
       </div>
     </div>
 
-    <div class="gun-card" data-gun="uzi">
-      <canvas id="gc-uzi" width="116" height="50"></canvas>
-      <div class="gun-name">UZI</div>
-      <div class="gun-desc">RAPID FIRE</div>
-      <div class="stat-row"><span class="stat-label">POWER</span><div class="stat-bar"><div class="stat-fill" style="width:33%;background:var(--warn-yellow);"></div></div></div>
-      <div class="stat-row"><span class="stat-label">SPEED</span><div class="stat-bar"><div class="stat-fill" style="width:100%;background:var(--hud-green);"></div></div></div>
-      <div class="gun-dmg-row">
-        <span class="gun-dmg-label">DAMAGE</span>
-        <div class="gun-dmg-pips">
-          <div class="dmg-pip filled d1"></div>
-          <div class="dmg-pip empty"></div>
-          <div class="dmg-pip empty"></div>
-        </div>
-      </div>
-    </div>
 
   </div>
 
@@ -798,7 +783,7 @@
 
 <script>
 // ── VERSION ──
-const VERSION = 'v2.0';
+const VERSION = 'v2.1';
 
 // ── Map definitions ──
 const MAPS = {
@@ -912,7 +897,6 @@ const GUNS = [
   { key: 'deagle',   name: 'DESERT EAGLE', damage: 3, draw: drawGunDeagle   },
   { key: 'shotgun',  name: 'SAWED-OFF',    damage: 2, draw: drawGunShotgun  },
   { key: 'sniper',   name: 'SNIPER',       damage: 3, draw: drawGunSniper   },
-  { key: 'uzi',      name: 'UZI',          damage: 1, draw: drawGunUzi      },
 ];
 let selectedGun = 'm1911';
 
