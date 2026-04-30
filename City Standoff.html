@@ -145,6 +145,81 @@
   }
 
   /* ══════════════════════════════
+     DIFFICULTY SCREEN
+  ══════════════════════════════ */
+  #difficulty-screen { background: #0a0a0f; gap: 0; }
+
+  .diff-picker {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 16px;
+    margin-bottom: 36px;
+    max-width: 760px;
+  }
+
+  .diff-card {
+    width: 160px;
+    border: 2px solid rgba(255,255,255,0.15);
+    border-radius: 4px;
+    padding: 20px 12px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.2s, transform 0.15s, box-shadow 0.2s;
+    background: rgba(255,255,255,0.04);
+  }
+  .diff-card:hover { border-color: var(--warn-yellow); transform: translateY(-3px); }
+  .diff-card.selected {
+    border-color: var(--warn-yellow);
+    box-shadow: 0 0 18px rgba(255,215,0,0.35);
+    background: rgba(255,215,0,0.07);
+  }
+  .diff-card .diff-emoji { font-size: 34px; margin-bottom: 8px; }
+  .diff-card .diff-name {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 20px;
+    letter-spacing: 2px;
+    color: #fff;
+  }
+  .diff-card .diff-desc  { font-size: 10px; color: rgba(255,255,255,0.45); margin-top: 4px; }
+  .diff-card .diff-speed { font-size: 10px; margin-top: 8px; letter-spacing: 1px; font-weight: bold; }
+
+  .diff-btn-row { display: flex; gap: 14px; align-items: center; margin-top: 4px; }
+
+  #confirm-diff-btn {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 26px;
+    letter-spacing: 5px;
+    padding: 14px 52px;
+    background: var(--danger-red);
+    border: none;
+    color: #fff;
+    cursor: pointer;
+    border-radius: 2px;
+    transition: background 0.2s, transform 0.1s, box-shadow 0.2s;
+    box-shadow: 0 4px 24px rgba(255,34,68,0.4);
+  }
+  #confirm-diff-btn:hover {
+    background: #ff4466;
+    transform: scale(1.04);
+    box-shadow: 0 6px 32px rgba(255,34,68,0.6);
+  }
+
+  #back-to-map-btn {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 18px;
+    letter-spacing: 3px;
+    padding: 14px 24px;
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.2);
+    color: rgba(255,255,255,0.5);
+    cursor: pointer;
+    border-radius: 2px;
+    transition: border-color 0.2s, color 0.2s;
+  }
+  #back-to-map-btn:hover { border-color: rgba(255,255,255,0.5); color: #fff; }
+
+  /* ══════════════════════════════
      GAME SCREEN
   ══════════════════════════════ */
   #game-screen { cursor: crosshair; }
@@ -341,7 +416,7 @@
 <body>
 
 <!-- VERSION badge -->
-<div id="version-badge">v1.4</div>
+<div id="version-badge">v1.5</div>
 
 <!-- ══ START SCREEN ══ -->
 <div id="start-screen" class="screen active">
@@ -378,6 +453,44 @@
   </p>
 
   <button id="start-btn">START GAME</button>
+</div>
+
+<!-- ══ DIFFICULTY SCREEN ══ -->
+<div id="difficulty-screen" class="screen">
+  <h1 style="font-family:'Bebas Neue',sans-serif;font-size:clamp(40px,7vw,80px);letter-spacing:6px;color:#fff;text-shadow:0 0 40px rgba(255,34,68,0.7);line-height:1;margin-bottom:6px;">CHOOSE DIFFICULTY</h1>
+  <p class="subtitle" style="margin-bottom:32px;">HOW FAST IS YOUR DRAW?</p>
+
+  <div class="diff-picker">
+    <div class="diff-card" data-diff="beginner">
+      <div class="diff-emoji">🌱</div>
+      <div class="diff-name">BEGINNER</div>
+      <div class="diff-desc">Nice and easy</div>
+      <div class="diff-speed" style="color:#88ff88;">BOT: SLOW</div>
+    </div>
+    <div class="diff-card selected" data-diff="intermediate">
+      <div class="diff-emoji">⚡</div>
+      <div class="diff-name">INTERMEDIATE</div>
+      <div class="diff-desc">A fair fight</div>
+      <div class="diff-speed" style="color:#ffd700;">BOT: MEDIUM</div>
+    </div>
+    <div class="diff-card" data-diff="advanced">
+      <div class="diff-emoji">🔥</div>
+      <div class="diff-name">ADVANCED</div>
+      <div class="diff-desc">Quick on the draw</div>
+      <div class="diff-speed" style="color:#ff8833;">BOT: FAST</div>
+    </div>
+    <div class="diff-card" data-diff="extreme">
+      <div class="diff-emoji">💀</div>
+      <div class="diff-name">EXTREME</div>
+      <div class="diff-desc">Blink and you lose</div>
+      <div class="diff-speed" style="color:#ff2244;">BOT: LIGHTNING</div>
+    </div>
+  </div>
+
+  <div class="diff-btn-row">
+    <button id="back-to-map-btn">← MAP</button>
+    <button id="confirm-diff-btn">LET'S DUEL</button>
+  </div>
 </div>
 
 <!-- ══ GAME SCREEN ══ -->
@@ -422,7 +535,7 @@
 
 <script>
 // ── VERSION ──
-const VERSION = 'v1.4';
+const VERSION = 'v1.5';
 
 // ── Map definitions ──
 const MAPS = {
@@ -508,14 +621,23 @@ let rawMouseY = window.innerHeight / 2;
 let lerpMouseX = 0;  // smoothed horizontal offset (-1 = far left, 1 = far right)
 let lerpMouseY = 0;  // smoothed vertical offset   (-1 = top,      1 = bottom)
 
-// Bot reaction time range (ms) — gets harder each round
-const BOT_MIN_MS = 420;
-const BOT_MAX_MS = 1100;
+// Difficulty presets — applied when the player picks a level
+const DIFFICULTY_PRESETS = {
+  beginner:     { minMs: 900,  maxMs: 1600, roundBonus: 20  },
+  intermediate: { minMs: 500,  maxMs: 1100, roundBonus: 60  },
+  advanced:     { minMs: 260,  maxMs: 650,  roundBonus: 80  },
+  extreme:      { minMs: 80,   maxMs: 300,  roundBonus: 100 },
+};
+let selectedDifficulty = 'intermediate';
+let botMinMs      = 500;
+let botMaxMs      = 1100;
+let botRoundBonus = 60;
 
 // ── DOM refs ──
-const startScreen    = document.getElementById('start-screen');
-const gameScreen     = document.getElementById('game-screen');
-const gameoverScreen = document.getElementById('gameover-screen');
+const startScreen      = document.getElementById('start-screen');
+const difficultyScreen = document.getElementById('difficulty-screen');
+const gameScreen       = document.getElementById('game-screen');
+const gameoverScreen   = document.getElementById('gameover-screen');
 const statusMsg      = document.getElementById('status-msg');
 const flashEl        = document.getElementById('flash');
 const roundResult    = document.getElementById('round-result');
@@ -535,8 +657,35 @@ document.querySelectorAll('.map-card').forEach(card => {
   });
 });
 
-// ── Start button ──
-document.getElementById('start-btn').addEventListener('click', startGame);
+// ── Difficulty card selection ──
+document.querySelectorAll('.diff-card').forEach(card => {
+  card.addEventListener('click', () => {
+    document.querySelectorAll('.diff-card').forEach(c => c.classList.remove('selected'));
+    card.classList.add('selected');
+    selectedDifficulty = card.dataset.diff;
+  });
+});
+
+// ── Start button → go to difficulty screen ──
+document.getElementById('start-btn').addEventListener('click', () => {
+  showScreen(startScreen, false);
+  showScreen(difficultyScreen, true);
+});
+
+// ── Back to map button ──
+document.getElementById('back-to-map-btn').addEventListener('click', () => {
+  showScreen(difficultyScreen, false);
+  showScreen(startScreen, true);
+});
+
+// ── Confirm difficulty → start game ──
+document.getElementById('confirm-diff-btn').addEventListener('click', () => {
+  const preset  = DIFFICULTY_PRESETS[selectedDifficulty];
+  botMinMs      = preset.minMs;
+  botMaxMs      = preset.maxMs;
+  botRoundBonus = preset.roundBonus;
+  startGame();
+});
 
 // ── Next round button ──
 // stopPropagation prevents the click from bubbling up to the game screen
@@ -604,7 +753,7 @@ function showScreen(el, show) {
 //  GAME FLOW
 // ══════════════════════════════
 function startGame() {
-  showScreen(startScreen, false);
+  showScreen(difficultyScreen, false);
   showScreen(gameScreen, true);
   resetGame();
   beginRound();
@@ -648,12 +797,9 @@ function beginRound() {
     drawTime = performance.now();
     setStatus('DRAW!', 'var(--warn-yellow)');
 
-    // Bot reaction
-    const difficultyBonus = (currentRound - 1) * 60; // gets faster each round
-    const botMs = Math.max(
-      BOT_MIN_MS - difficultyBonus,
-      200
-    ) + Math.random() * (BOT_MAX_MS - BOT_MIN_MS);
+    // Bot reaction — gets faster each round based on selected difficulty
+    const roundBonus = (currentRound - 1) * botRoundBonus;
+    const botMs = Math.max(botMinMs - roundBonus, 80) + Math.random() * (botMaxMs - botMinMs);
 
     botShootTimeout = setTimeout(() => {
       if (roundPhase === 'draw') {
