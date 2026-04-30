@@ -553,7 +553,7 @@
 <body>
 
 <!-- VERSION badge -->
-<div id="version-badge">v2.1</div>
+<div id="version-badge">v2.2</div>
 
 <!-- ══ START SCREEN ══ -->
 <div id="start-screen" class="screen active">
@@ -724,6 +724,24 @@
 
   </div>
 
+    <div class="gun-card" data-gun="flintlock">
+      <canvas id="gc-flintlock" width="116" height="50"></canvas>
+      <div class="gun-name">FLINTLOCK</div>
+      <div class="gun-desc">ONE SHOT, ONE KILL</div>
+      <div class="stat-row"><span class="stat-label">POWER</span><div class="stat-bar"><div class="stat-fill" style="width:100%;background:var(--danger-red);"></div></div></div>
+      <div class="stat-row"><span class="stat-label">SPEED</span><div class="stat-bar"><div class="stat-fill" style="width:10%;background:var(--hud-green);"></div></div></div>
+      <div class="gun-dmg-row">
+        <span class="gun-dmg-label">DAMAGE</span>
+        <div class="gun-dmg-pips">
+          <div class="dmg-pip filled d3"></div>
+          <div class="dmg-pip filled d3"></div>
+          <div class="dmg-pip filled d3"></div>
+          <div class="dmg-pip filled d3"></div>
+          <div class="dmg-pip filled d3"></div>
+        </div>
+      </div>
+    </div>
+
   <div class="gun-btn-row">
     <button id="back-to-diff-btn">← DIFFICULTY</button>
     <button id="play-btn">PLAY</button>
@@ -783,7 +801,7 @@
 
 <script>
 // ── VERSION ──
-const VERSION = 'v2.1';
+const VERSION = 'v2.2';
 
 // ── Map definitions ──
 const MAPS = {
@@ -897,6 +915,7 @@ const GUNS = [
   { key: 'deagle',   name: 'DESERT EAGLE', damage: 3, draw: drawGunDeagle   },
   { key: 'shotgun',  name: 'SAWED-OFF',    damage: 2, draw: drawGunShotgun  },
   { key: 'sniper',   name: 'SNIPER',       damage: 3, draw: drawGunSniper   },
+  { key: 'flintlock', name: 'FLINTLOCK',  damage: 5, draw: drawGunFlintlock },
 ];
 let selectedGun = 'm1911';
 
@@ -1983,6 +2002,37 @@ function drawGunUzi(cx, w, h) {
   cx.fill();
   // Cocking handle on top
   cx.fillRect(w*.6, h*.06, w*.1, h*.1);
+}
+function drawGunFlintlock(cx, w, h) {
+  // Very long thin barrel
+  cx.fillRect(w*.18, h*.28, w*.78, h*.14);
+  // Wooden stock — curves downward at the back
+  cx.beginPath();
+  cx.moveTo(w*.18, h*.28);
+  cx.lineTo(w*.18, h*.42);
+  cx.lineTo(w*.10, h*.80);
+  cx.lineTo(w*.04, h*.88);
+  cx.lineTo(w*.02, h*.80);
+  cx.lineTo(w*.12, h*.52);
+  cx.lineTo(w*.12, h*.28);
+  cx.closePath();
+  cx.fill();
+  // Lock mechanism box (flintlock action) on top of stock
+  cx.fillRect(w*.14, h*.14, w*.18, h*.16);
+  // Hammer (the cocking piece that strikes the flint)
+  cx.beginPath();
+  cx.moveTo(w*.22, h*.14);
+  cx.lineTo(w*.18, h*.04);
+  cx.lineTo(w*.26, h*.06);
+  cx.lineTo(w*.28, h*.14);
+  cx.closePath();
+  cx.fill();
+  // Pan (powder pan below the hammer)
+  cx.fillRect(w*.28, h*.38, w*.08, h*.06);
+  // Trigger guard
+  cx.beginPath();
+  cx.arc(w*.2, h*.58, w*.09, 0, Math.PI);
+  cx.fill();
 }
 
 </script>
