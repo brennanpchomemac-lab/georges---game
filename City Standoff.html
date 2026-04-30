@@ -265,6 +265,29 @@
   .stat-bar { flex: 1; height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; overflow: hidden; }
   .stat-fill { height: 100%; border-radius: 2px; }
 
+  /* Damage pip display on gun cards */
+  .gun-dmg-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    margin-top: 8px;
+    padding-top: 7px;
+    border-top: 1px solid rgba(255,255,255,0.08);
+  }
+  .gun-dmg-label { font-size: 8px; color: rgba(255,255,255,0.45); letter-spacing: 1px; }
+  .gun-dmg-pips  { display: flex; gap: 3px; }
+  .dmg-pip {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    border: 1px solid rgba(255,255,255,0.2);
+  }
+  .dmg-pip.filled { border-color: transparent; }
+  .dmg-pip.d1 { background: var(--warn-yellow);  box-shadow: 0 0 5px rgba(255,215,0,0.6); }
+  .dmg-pip.d2 { background: #ff8833;             box-shadow: 0 0 5px rgba(255,136,51,0.6); }
+  .dmg-pip.d3 { background: var(--danger-red);   box-shadow: 0 0 5px rgba(255,34,68,0.6); }
+  .dmg-pip.empty { background: rgba(255,255,255,0.07); }
+
   .gun-btn-row { display: flex; gap: 14px; align-items: center; }
 
   #play-btn {
@@ -528,7 +551,7 @@
 <body>
 
 <!-- VERSION badge -->
-<div id="version-badge">v1.8</div>
+<div id="version-badge">v1.9</div>
 
 <!-- ══ START SCREEN ══ -->
 <div id="start-screen" class="screen active">
@@ -620,16 +643,32 @@
       <canvas id="gc-m1911" width="116" height="50"></canvas>
       <div class="gun-name">M1911</div>
       <div class="gun-desc">STANDARD ISSUE</div>
-      <div class="stat-row"><span class="stat-label">POWER</span><div class="stat-bar"><div class="stat-fill" style="width:60%;background:var(--warn-yellow);"></div></div></div>
+      <div class="stat-row"><span class="stat-label">POWER</span><div class="stat-bar"><div class="stat-fill" style="width:33%;background:var(--warn-yellow);"></div></div></div>
       <div class="stat-row"><span class="stat-label">SPEED</span><div class="stat-bar"><div class="stat-fill" style="width:60%;background:var(--hud-green);"></div></div></div>
+      <div class="gun-dmg-row">
+        <span class="gun-dmg-label">DAMAGE</span>
+        <div class="gun-dmg-pips">
+          <div class="dmg-pip filled d1"></div>
+          <div class="dmg-pip empty"></div>
+          <div class="dmg-pip empty"></div>
+        </div>
+      </div>
     </div>
 
     <div class="gun-card" data-gun="revolver">
       <canvas id="gc-revolver" width="116" height="50"></canvas>
       <div class="gun-name">REVOLVER</div>
       <div class="gun-desc">SIX SHOOTER</div>
-      <div class="stat-row"><span class="stat-label">POWER</span><div class="stat-bar"><div class="stat-fill" style="width:80%;background:var(--warn-yellow);"></div></div></div>
+      <div class="stat-row"><span class="stat-label">POWER</span><div class="stat-bar"><div class="stat-fill" style="width:66%;background:var(--warn-yellow);"></div></div></div>
       <div class="stat-row"><span class="stat-label">SPEED</span><div class="stat-bar"><div class="stat-fill" style="width:40%;background:var(--hud-green);"></div></div></div>
+      <div class="gun-dmg-row">
+        <span class="gun-dmg-label">DAMAGE</span>
+        <div class="gun-dmg-pips">
+          <div class="dmg-pip filled d2"></div>
+          <div class="dmg-pip filled d2"></div>
+          <div class="dmg-pip empty"></div>
+        </div>
+      </div>
     </div>
 
     <div class="gun-card" data-gun="deagle">
@@ -638,14 +677,30 @@
       <div class="gun-desc">HAND CANNON</div>
       <div class="stat-row"><span class="stat-label">POWER</span><div class="stat-bar"><div class="stat-fill" style="width:100%;background:var(--danger-red);"></div></div></div>
       <div class="stat-row"><span class="stat-label">SPEED</span><div class="stat-bar"><div class="stat-fill" style="width:20%;background:var(--hud-green);"></div></div></div>
+      <div class="gun-dmg-row">
+        <span class="gun-dmg-label">DAMAGE</span>
+        <div class="gun-dmg-pips">
+          <div class="dmg-pip filled d3"></div>
+          <div class="dmg-pip filled d3"></div>
+          <div class="dmg-pip filled d3"></div>
+        </div>
+      </div>
     </div>
 
     <div class="gun-card" data-gun="shotgun">
       <canvas id="gc-shotgun" width="116" height="50"></canvas>
       <div class="gun-name">SAWED-OFF</div>
       <div class="gun-desc">CLOSE QUARTERS</div>
-      <div class="stat-row"><span class="stat-label">POWER</span><div class="stat-bar"><div class="stat-fill" style="width:100%;background:var(--danger-red);"></div></div></div>
+      <div class="stat-row"><span class="stat-label">POWER</span><div class="stat-bar"><div class="stat-fill" style="width:66%;background:var(--warn-yellow);"></div></div></div>
       <div class="stat-row"><span class="stat-label">SPEED</span><div class="stat-bar"><div class="stat-fill" style="width:40%;background:var(--hud-green);"></div></div></div>
+      <div class="gun-dmg-row">
+        <span class="gun-dmg-label">DAMAGE</span>
+        <div class="gun-dmg-pips">
+          <div class="dmg-pip filled d2"></div>
+          <div class="dmg-pip filled d2"></div>
+          <div class="dmg-pip empty"></div>
+        </div>
+      </div>
     </div>
 
     <div class="gun-card" data-gun="sniper">
@@ -654,14 +709,30 @@
       <div class="gun-desc">LONG RANGE</div>
       <div class="stat-row"><span class="stat-label">POWER</span><div class="stat-bar"><div class="stat-fill" style="width:100%;background:var(--danger-red);"></div></div></div>
       <div class="stat-row"><span class="stat-label">SPEED</span><div class="stat-bar"><div class="stat-fill" style="width:20%;background:var(--hud-green);"></div></div></div>
+      <div class="gun-dmg-row">
+        <span class="gun-dmg-label">DAMAGE</span>
+        <div class="gun-dmg-pips">
+          <div class="dmg-pip filled d3"></div>
+          <div class="dmg-pip filled d3"></div>
+          <div class="dmg-pip filled d3"></div>
+        </div>
+      </div>
     </div>
 
     <div class="gun-card" data-gun="uzi">
       <canvas id="gc-uzi" width="116" height="50"></canvas>
       <div class="gun-name">UZI</div>
       <div class="gun-desc">RAPID FIRE</div>
-      <div class="stat-row"><span class="stat-label">POWER</span><div class="stat-bar"><div class="stat-fill" style="width:40%;background:var(--warn-yellow);"></div></div></div>
+      <div class="stat-row"><span class="stat-label">POWER</span><div class="stat-bar"><div class="stat-fill" style="width:33%;background:var(--warn-yellow);"></div></div></div>
       <div class="stat-row"><span class="stat-label">SPEED</span><div class="stat-bar"><div class="stat-fill" style="width:100%;background:var(--hud-green);"></div></div></div>
+      <div class="gun-dmg-row">
+        <span class="gun-dmg-label">DAMAGE</span>
+        <div class="gun-dmg-pips">
+          <div class="dmg-pip filled d1"></div>
+          <div class="dmg-pip empty"></div>
+          <div class="dmg-pip empty"></div>
+        </div>
+      </div>
     </div>
 
   </div>
@@ -721,7 +792,7 @@
 
 <script>
 // ── VERSION ──
-const VERSION = 'v1.8';
+const VERSION = 'v1.9';
 
 // ── Map definitions ──
 const MAPS = {
@@ -827,14 +898,15 @@ let botHpMax    = 3;
 let playerHp    = 3;   // current HP (decrements when hit)
 let botHp       = 3;
 
-// Gun definitions — stats are cosmetic for now, ready for gameplay use later
+// Gun definitions — damage is how much HP is removed from the bot per successful shot
+// Bot always deals 1 HP damage to the player
 const GUNS = [
-  { key: 'm1911',    name: 'M1911',        draw: drawGunM1911    },
-  { key: 'revolver', name: 'REVOLVER',     draw: drawGunRevolver },
-  { key: 'deagle',   name: 'DESERT EAGLE', draw: drawGunDeagle   },
-  { key: 'shotgun',  name: 'SAWED-OFF',    draw: drawGunShotgun  },
-  { key: 'sniper',   name: 'SNIPER',       draw: drawGunSniper   },
-  { key: 'uzi',      name: 'UZI',          draw: drawGunUzi      },
+  { key: 'm1911',    name: 'M1911',        damage: 1, draw: drawGunM1911    },
+  { key: 'revolver', name: 'REVOLVER',     damage: 2, draw: drawGunRevolver },
+  { key: 'deagle',   name: 'DESERT EAGLE', damage: 3, draw: drawGunDeagle   },
+  { key: 'shotgun',  name: 'SAWED-OFF',    damage: 2, draw: drawGunShotgun  },
+  { key: 'sniper',   name: 'SNIPER',       damage: 3, draw: drawGunSniper   },
+  { key: 'uzi',      name: 'UZI',          damage: 1, draw: drawGunUzi      },
 ];
 let selectedGun = 'm1911';
 
@@ -1068,9 +1140,12 @@ function handleShoot() {
 
   setTimeout(() => {
     playerScore++;
-    botHp--;       // player's bullet hits the bot — remove one HP pip
+    // Look up the selected gun and deal its damage to the bot
+    const gun = GUNS.find(g => g.key === selectedGun);
+    const dmg = gun ? gun.damage : 1;
+    botHp = Math.max(0, botHp - dmg);
     updateHUD();
-    showRoundResult(true, `Reaction: ${reactionMs}ms`);
+    showRoundResult(true, `Reaction: ${reactionMs}ms  ·  -${dmg} HP`);
   }, 350);
 }
 
