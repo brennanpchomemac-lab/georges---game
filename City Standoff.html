@@ -341,7 +341,7 @@
 <body>
 
 <!-- VERSION badge -->
-<div id="version-badge">v1.3</div>
+<div id="version-badge">v1.4</div>
 
 <!-- ══ START SCREEN ══ -->
 <div id="start-screen" class="screen active">
@@ -422,7 +422,7 @@
 
 <script>
 // ── VERSION ──
-const VERSION = 'v1.3';
+const VERSION = 'v1.4';
 
 // ── Map definitions ──
 const MAPS = {
@@ -502,6 +502,12 @@ const ctx = canvas.getContext('2d');
 let animFrameId = null;
 let sceneTime = 0;
 
+// Mouse position for parallax — raw pixel coords, then smoothed to -1..1
+let rawMouseX = window.innerWidth  / 2;
+let rawMouseY = window.innerHeight / 2;
+let lerpMouseX = 0;  // smoothed horizontal offset (-1 = far left, 1 = far right)
+let lerpMouseY = 0;  // smoothed vertical offset   (-1 = top,      1 = bottom)
+
 // Bot reaction time range (ms) — gets harder each round
 const BOT_MIN_MS = 420;
 const BOT_MAX_MS = 1100;
@@ -563,6 +569,8 @@ const crosshairEl = document.getElementById('crosshair');
 gameScreen.addEventListener('mousemove', e => {
   crosshairEl.style.left = e.clientX + 'px';
   crosshairEl.style.top  = e.clientY + 'px';
+  rawMouseX = e.clientX;
+  rawMouseY = e.clientY;
 });
 
 // ── Shoot on click (game screen) ──
@@ -765,6 +773,12 @@ function triggerFlash(color) {
 function animateScene() {
   sceneTime += 0.016;
 
+  // Smoothly lerp mouse toward raw position — creates a floaty, weighty parallax feel
+  const targetX = (rawMouseX - window.innerWidth  / 2) / (window.innerWidth  / 2);
+  const targetY = (rawMouseY - window.innerHeight / 2) / (window.innerHeight / 2);
+  lerpMouseX += (targetX - lerpMouseX) * 0.07;
+  lerpMouseY += (targetY - lerpMouseY) * 0.07;
+
   // ── Step bot position ──
   // Move bot by current speed in current direction
   botX += botDir * botSpeed;
@@ -800,37 +814,43 @@ function drawScene() {
   const H = canvas.height;
   const map = MAPS[selectedMap];
 
+  // Each depth layer shifts by a different amount based on mouse position.
+  // Far layers move less, near layers move more — this is what creates the 3D feel.
+  const bgOffset  = lerpMouseX * W * 0.04;   // background buildings: subtle
+  const fgOffset  = lerpMouseX * W * 0.10;   // foreground buildings: more pronounced
+  // Horizon rises/falls slightly with vertical mouse (like tilting your head)
+  const horizonY  = H * (0.58 - lerpMouseY * 0.03);
+
   ctx.clearRect(0, 0, W, H);
 
   // ── Sky gradient ──
-  const skyGrad = ctx.createLinearGradient(0, 0, 0, H * 0.58);
+  const skyGrad = ctx.createLinearGradient(0, 0, 0, horizonY);
   skyGrad.addColorStop(0, map.skyTop);
   skyGrad.addColorStop(1, map.skyBottom);
   ctx.fillStyle = skyGrad;
-  ctx.fillRect(0, 0, W, H * 0.58);
+  ctx.fillRect(0, 0, W, horizonY);
 
   // ── Ground ──
-  const groundGrad = ctx.createLinearGradient(0, H * 0.58, 0, H);
+  const groundGrad = ctx.createLinearGradient(0, horizonY, 0, H);
   groundGrad.addColorStop(0, map.groundColor);
   groundGrad.addColorStop(1, '#000');
   ctx.fillStyle = groundGrad;
-  ctx.fillRect(0, H * 0.58, W, H * 0.42);
+  ctx.fillRect(0, horizonY, W, H - horizonY);
 
-  // ── Perspective ground lines ──
+  // ── Perspective ground lines (vanishing point follows mouse slightly) ──
   ctx.strokeStyle = map.groundLine;
   ctx.globalAlpha = 0.18;
   ctx.lineWidth = 1;
-  const vp = { x: W / 2, y: H * 0.58 };
+  const vp = { x: W / 2 + lerpMouseX * W * 0.02, y: horizonY };
   for (let i = -8; i <= 8; i++) {
     ctx.beginPath();
     ctx.moveTo(vp.x, vp.y);
     ctx.lineTo(vp.x + i * W * 0.14, H);
     ctx.stroke();
   }
-  // Horizontal ground lines
   for (let row = 0; row < 6; row++) {
     const t = row / 5;
-    const y = H * 0.58 + (H * 0.42) * (t * t);
+    const y = horizonY + (H - horizonY) * (t * t);
     ctx.beginPath();
     ctx.moveTo(0, y);
     ctx.lineTo(W, y);
@@ -839,37 +859,38 @@ function drawScene() {
   }
   ctx.globalAlpha = 1;
 
-  // ── Buildings (background layer) ──
+  // ── Buildings ──
   if (map.isWestern) {
-    drawWesternScene(ctx, W, H, map);
+    drawWesternScene(ctx, W, H, map, horizonY, bgOffset, fgOffset);
   } else {
-    drawBuildings(ctx, W, H, map, 0.22, 0.58, 6, 80, 200, 'bg');
+    // Background buildings shift least (furthest away)
+    drawBuildings(ctx, W, H, map, 0.22, horizonY / H, 6, 80, 200, 'bg', undefined, undefined, bgOffset);
 
     // ── Fog / atmosphere ──
-    const fogGrad = ctx.createLinearGradient(0, 0, 0, H * 0.6);
+    const fogGrad = ctx.createLinearGradient(0, 0, 0, horizonY);
     fogGrad.addColorStop(0.4, 'transparent');
     fogGrad.addColorStop(1, map.fogColor);
     ctx.fillStyle = fogGrad;
-    ctx.fillRect(0, 0, W, H * 0.6);
+    ctx.fillRect(0, 0, W, horizonY);
 
-    // ── Buildings (foreground sides) ──
-    drawBuildings(ctx, W, H, map, 0.05, 0.58, 3, 120, 280, 'fg-left',  0, W * 0.28);
-    drawBuildings(ctx, W, H, map, 0.05, 0.58, 3, 120, 280, 'fg-right', W * 0.72, W);
+    // Foreground buildings shift most (closest to viewer)
+    drawBuildings(ctx, W, H, map, 0.05, horizonY / H, 3, 120, 280, 'fg-left',  0,        W * 0.28, fgOffset);
+    drawBuildings(ctx, W, H, map, 0.05, horizonY / H, 3, 120, 280, 'fg-right', W * 0.72, W,        fgOffset);
 
     // ── Ambient glow at horizon ──
-    const ambGrad = ctx.createRadialGradient(W/2, H * 0.58, 0, W/2, H * 0.58, W * 0.55);
+    const ambGrad = ctx.createRadialGradient(W/2, horizonY, 0, W/2, horizonY, W * 0.55);
     ambGrad.addColorStop(0, map.ambientLight);
     ambGrad.addColorStop(1, 'transparent');
     ctx.fillStyle = ambGrad;
-    ctx.fillRect(0, H * 0.3, W, H * 0.4);
+    ctx.fillRect(0, horizonY * 0.5, W, horizonY);
   }
 
   // ── Bot character ──
-  drawBot(ctx, W, H, map);
+  drawBot(ctx, W, H, map, horizonY);
 }
 
 // Building drawing helper
-function drawBuildings(ctx, W, H, map, minH, groundY, count, minW, maxW, layer, xStart, xEnd) {
+function drawBuildings(ctx, W, H, map, minH, groundY, count, minW, maxW, layer, xStart, xEnd, offsetX = 0) {
   const seed = layer === 'bg' ? 42 : (layer === 'fg-left' ? 77 : 133);
   let x = (xStart !== undefined) ? xStart : 0;
   const endX = (xEnd !== undefined) ? xEnd : W;
@@ -884,7 +905,7 @@ function drawBuildings(ctx, W, H, map, minH, groundY, count, minW, maxW, layer, 
     const bw = minW + rand(i) * (maxW - minW);
     const bh = H * (minH + rand(i, 1) * 0.3);
     const by = H * groundY - bh;
-    const bx = x + rand(i, 2) * 10;
+    const bx = x + rand(i, 2) * 10 + offsetX;  // shift whole layer for parallax
 
     // Building body
     ctx.fillStyle = map.buildingColors[i % map.buildingColors.length];
@@ -921,11 +942,11 @@ function drawBuildings(ctx, W, H, map, minH, groundY, count, minW, maxW, layer, 
 // ══════════════════════════════
 //  WESTERN SCENE — Dodge City saloon street
 // ══════════════════════════════
-function drawWesternScene(ctx, W, H, map) {
-  const groundY = H * 0.58;
+function drawWesternScene(ctx, W, H, map, horizonY = H * 0.58, bgOffset = 0, fgOffset = 0) {
+  const groundY = horizonY;
 
   // ── Sun near horizon ──
-  const sunX = W * 0.78;
+  const sunX = W * 0.78 + bgOffset * 0.5;
   const sunY = H * 0.28;
   const sunGlow = ctx.createRadialGradient(sunX, sunY, 0, sunX, sunY, W * 0.28);
   sunGlow.addColorStop(0, 'rgba(255,220,80,0.55)');
@@ -945,16 +966,14 @@ function drawWesternScene(ctx, W, H, map) {
   ctx.fillStyle = hazeGrad;
   ctx.fillRect(0, groundY - 40, W, 100);
 
-  // ── Left saloon (big, foreground) ──
-  drawSaloon(ctx, W * 0.02, groundY, W * 0.26, H * 0.34, '#5c3a1a', '#7a5030', '#f0a840', map.windowColor);
+  // ── Background buildings (centre) — shift least, furthest away ──
+  drawSaloon(ctx, W * 0.30 + bgOffset, groundY, W * 0.12, H * 0.18, '#3a2010', '#5a3820', '#c08030', map.windowColor, true);
+  drawSaloon(ctx, W * 0.44 + bgOffset, groundY, W * 0.10, H * 0.15, '#2e1a0a', '#4a2e10', '#c08030', map.windowColor, true);
+  drawSaloon(ctx, W * 0.56 + bgOffset, groundY, W * 0.14, H * 0.20, '#3a2010', '#5a3820', '#c08030', map.windowColor, true);
 
-  // ── Right saloon ──
-  drawSaloon(ctx, W * 0.72, groundY, W * 0.27, H * 0.30, '#4a2e10', '#6b4520', '#f0a840', map.windowColor);
-
-  // ── Background buildings (smaller, centre) ──
-  drawSaloon(ctx, W * 0.30, groundY, W * 0.12, H * 0.18, '#3a2010', '#5a3820', '#c08030', map.windowColor, true);
-  drawSaloon(ctx, W * 0.44, groundY, W * 0.10, H * 0.15, '#2e1a0a', '#4a2e10', '#c08030', map.windowColor, true);
-  drawSaloon(ctx, W * 0.56, groundY, W * 0.14, H * 0.20, '#3a2010', '#5a3820', '#c08030', map.windowColor, true);
+  // ── Foreground saloons (sides) — shift most, closest to viewer ──
+  drawSaloon(ctx, W * 0.02 + fgOffset, groundY, W * 0.26, H * 0.34, '#5c3a1a', '#7a5030', '#f0a840', map.windowColor);
+  drawSaloon(ctx, W * 0.72 + fgOffset, groundY, W * 0.27, H * 0.30, '#4a2e10', '#6b4520', '#f0a840', map.windowColor);
 
   // ── Wooden fence posts on both sides ──
   drawFencePosts(ctx, W, groundY, map.accentColor);
@@ -1100,9 +1119,9 @@ function drawTumbleweed(ctx, x, y, r) {
 }
 
 
-function drawBot(ctx, W, H, map) {
+function drawBot(ctx, W, H, map, horizonY = H * 0.58) {
   const cx = W / 2;
-  const groundY = H * 0.58;
+  const groundY = horizonY;
 
   // Bot uses the live botX position updated every frame by animateScene
   // Small vertical bob based on movement speed (faster = more bounce)
