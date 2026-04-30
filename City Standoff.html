@@ -553,7 +553,7 @@
 <body>
 
 <!-- VERSION badge -->
-<div id="version-badge">v2.2</div>
+<div id="version-badge">v2.3</div>
 
 <!-- ══ START SCREEN ══ -->
 <div id="start-screen" class="screen active">
@@ -603,28 +603,28 @@
       <div class="diff-name">BEGINNER</div>
       <div class="diff-desc">Nice and easy</div>
       <div class="diff-speed" style="color:#88ff88;">BOT: SLOW</div>
-      <div class="diff-hp">YOU ❤❤❤❤❤ · BOT ❤❤</div>
+      <div class="diff-hp">YOU ❤❤❤❤❤ · BOT ❤❤❤❤</div>
     </div>
     <div class="diff-card selected" data-diff="intermediate">
       <div class="diff-emoji">⚡</div>
       <div class="diff-name">INTERMEDIATE</div>
       <div class="diff-desc">A fair fight</div>
       <div class="diff-speed" style="color:#ffd700;">BOT: MEDIUM</div>
-      <div class="diff-hp">YOU ❤❤❤ · BOT ❤❤❤</div>
+      <div class="diff-hp">YOU ❤❤❤ · BOT ❤❤❤❤❤❤</div>
     </div>
     <div class="diff-card" data-diff="advanced">
       <div class="diff-emoji">🔥</div>
       <div class="diff-name">ADVANCED</div>
       <div class="diff-desc">Quick on the draw</div>
       <div class="diff-speed" style="color:#ff8833;">BOT: FAST</div>
-      <div class="diff-hp">YOU ❤❤ · BOT ❤❤❤❤</div>
+      <div class="diff-hp">YOU ❤❤ · BOT ❤❤❤❤❤❤❤❤</div>
     </div>
     <div class="diff-card" data-diff="extreme">
       <div class="diff-emoji">💀</div>
       <div class="diff-name">EXTREME</div>
       <div class="diff-desc">Blink and you lose</div>
       <div class="diff-speed" style="color:#ff2244;">BOT: LIGHTNING</div>
-      <div class="diff-hp">YOU ❤ · BOT ❤❤❤❤❤</div>
+      <div class="diff-hp">YOU ❤ · BOT ❤❤❤❤❤❤❤❤❤❤</div>
     </div>
   </div>
 
@@ -801,7 +801,7 @@
 
 <script>
 // ── VERSION ──
-const VERSION = 'v2.2';
+const VERSION = 'v2.3';
 
 // ── Map definitions ──
 const MAPS = {
@@ -891,10 +891,10 @@ let lerpMouseY = 0;  // smoothed vertical offset   (-1 = top,      1 = bottom)
 // playerHp = how many hits the player can take before losing
 // botHp    = how many hits the bot can take before losing
 const DIFFICULTY_PRESETS = {
-  beginner:     { minMs: 900,  maxMs: 1600, roundBonus: 20,  playerHp: 5, botHp: 2 },
-  intermediate: { minMs: 500,  maxMs: 1100, roundBonus: 60,  playerHp: 3, botHp: 3 },
-  advanced:     { minMs: 260,  maxMs: 650,  roundBonus: 80,  playerHp: 2, botHp: 4 },
-  extreme:      { minMs: 80,   maxMs: 300,  roundBonus: 100, playerHp: 1, botHp: 5 },
+  beginner:     { minMs: 900,  maxMs: 1600, roundBonus: 20,  playerHp: 5, botHp: 4  },
+  intermediate: { minMs: 500,  maxMs: 1100, roundBonus: 60,  playerHp: 3, botHp: 6  },
+  advanced:     { minMs: 260,  maxMs: 650,  roundBonus: 80,  playerHp: 2, botHp: 8  },
+  extreme:      { minMs: 80,   maxMs: 300,  roundBonus: 100, playerHp: 1, botHp: 10 },
 };
 let selectedDifficulty = 'intermediate';
 let botMinMs      = 500;
