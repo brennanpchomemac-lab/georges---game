@@ -848,20 +848,30 @@
 
 <script>
 // ── VERSION ──
-const VERSION = 'v2.4';
+const VERSION = 'v2.5';
 
 // ── Progression / unlock system ──
 // Progress is saved to localStorage so it persists between sessions.
 // Beat a difficulty to unlock the next difficulty and stronger guns.
+// Beat a map to unlock the next map.
 let unlockedDifficulties = JSON.parse(localStorage.getItem('csUnlockedDiffs') || '["beginner"]');
 let unlockedGuns         = JSON.parse(localStorage.getItem('csUnlockedGuns')  || '["m1911"]');
+let unlockedMaps         = JSON.parse(localStorage.getItem('csUnlockedMaps')  || '["newyork"]');
 
-// What beating each difficulty unlocks
+// What beating each difficulty unlocks (guns + next difficulty)
 const UNLOCK_MAP = {
   beginner:     { difficulties: ['intermediate'], guns: ['revolver', 'shotgun']  },
   intermediate: { difficulties: ['advanced'],     guns: ['deagle',   'sniper']   },
   advanced:     { difficulties: ['extreme'],       guns: ['flintlock']            },
   extreme:      { difficulties: [],               guns: []                       },
+};
+
+// What beating each map unlocks (the next map in the chain)
+const MAP_UNLOCK_CHAIN = {
+  newyork: 'london',
+  london:  'tokyo',
+  tokyo:   'western',
+  western: null,
 };
 
 // Apply locked/unlocked visual state to all difficulty and gun cards
@@ -895,33 +905,60 @@ function applyLockState() {
       }
     }
   });
+
+  document.querySelectorAll('.map-card').forEach(card => {
+    const map = card.dataset.map;
+    if (unlockedMaps.includes(map)) {
+      card.classList.remove('locked');
+    } else {
+      card.classList.add('locked');
+      // If this locked card was selected, fall back to newyork
+      if (card.classList.contains('selected')) {
+        card.classList.remove('selected');
+        document.querySelector('.map-card[data-map="newyork"]').classList.add('selected');
+        selectedMap = 'newyork';
+      }
+    }
+  });
 }
 
-// Check what gets unlocked after winning a difficulty; returns an array of new unlock names
-function checkAndUnlock(difficulty) {
-  const rules = UNLOCK_MAP[difficulty];
-  if (!rules) return [];
-
+// Check what gets unlocked after winning; returns an array of new unlock names.
+// Beating a difficulty unlocks the next difficulty + stronger guns.
+// Beating a map unlocks the next map in the chain.
+function checkAndUnlock(difficulty, map) {
   const newUnlocks = [];
 
-  rules.difficulties.forEach(d => {
-    if (!unlockedDifficulties.includes(d)) {
-      unlockedDifficulties.push(d);
-      newUnlocks.push(d.toUpperCase());
-    }
-  });
+  // ── Difficulty + gun unlocks ──
+  const rules = UNLOCK_MAP[difficulty];
+  if (rules) {
+    rules.difficulties.forEach(d => {
+      if (!unlockedDifficulties.includes(d)) {
+        unlockedDifficulties.push(d);
+        newUnlocks.push(d.toUpperCase() + ' DIFFICULTY');
+      }
+    });
+    rules.guns.forEach(g => {
+      if (!unlockedGuns.includes(g)) {
+        unlockedGuns.push(g);
+        const gun = GUNS.find(x => x.key === g);
+        if (gun) newUnlocks.push(gun.name);
+      }
+    });
+  }
 
-  rules.guns.forEach(g => {
-    if (!unlockedGuns.includes(g)) {
-      unlockedGuns.push(g);
-      const gun = GUNS.find(x => x.key === g);
-      if (gun) newUnlocks.push(gun.name);
-    }
-  });
+  // ── Map unlocks ──
+  const nextMap = MAP_UNLOCK_CHAIN[map];
+  if (nextMap && !unlockedMaps.includes(nextMap)) {
+    unlockedMaps.push(nextMap);
+    // Human-readable map names
+    const mapNames = { newyork: 'NEW YORK', london: 'LONDON', tokyo: 'TOKYO', western: 'DODGE CITY' };
+    newUnlocks.push(mapNames[nextMap] + ' MAP');
+  }
 
   if (newUnlocks.length > 0) {
     localStorage.setItem('csUnlockedDiffs', JSON.stringify(unlockedDifficulties));
     localStorage.setItem('csUnlockedGuns',  JSON.stringify(unlockedGuns));
+    localStorage.setItem('csUnlockedMaps',  JSON.stringify(unlockedMaps));
   }
 
   return newUnlocks;
@@ -1150,6 +1187,7 @@ document.getElementById('change-map-btn').addEventListener('click', () => {
   showScreen(gameoverScreen, false);
   showScreen(startScreen, true);
   cancelAnimationFrame(animFrameId);
+  applyLockState();
 });
 
 // ── Move crosshair to follow the cursor ──
@@ -1179,6 +1217,9 @@ function resizeCanvas() {
 }
 window.addEventListener('resize', resizeCanvas);
 resizeCanvas();
+
+// Apply lock state immediately on page load so locked cards show correctly
+applyLockState();
 
 // ══════════════════════════════
 //  SCREEN HELPERS
@@ -1344,7 +1385,7 @@ function showGameOver() {
   // If the player won, check for new unlocks and celebrate them
   const unlockMsgEl = document.getElementById('unlock-msg');
   if (youWin) {
-    const newUnlocks = checkAndUnlock(selectedDifficulty);
+    const newUnlocks = checkAndUnlock(selectedDifficulty, selectedMap);
     if (newUnlocks.length > 0) {
       unlockMsgEl.textContent = '🔓  UNLOCKED: ' + newUnlocks.join('  ·  ');
       unlockMsgEl.style.display = 'block';
