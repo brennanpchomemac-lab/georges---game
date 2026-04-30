@@ -531,7 +531,53 @@
     color: rgba(255,255,255,0.55);
   }
 
+  /* Unlock notification on game over screen */
+  #unlock-msg {
+    display: none;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 18px;
+    letter-spacing: 3px;
+    color: var(--warn-yellow);
+    text-shadow: 0 0 14px rgba(255,215,0,0.6);
+    text-align: center;
+    padding: 10px 24px;
+    border: 1px solid rgba(255,215,0,0.3);
+    border-radius: 4px;
+    background: rgba(255,215,0,0.06);
+  }
+
   #gameover-screen .btn-row { display: flex; gap: 14px; margin-top: 10px; }
+
+  /* ── Locked card overlay ── */
+  .diff-card.locked, .gun-card.locked {
+    cursor: not-allowed;
+    pointer-events: none;
+    position: relative;
+    border-color: rgba(255,255,255,0.06) !important;
+    box-shadow: none !important;
+  }
+  /* Dark overlay covers the card content */
+  .diff-card.locked::before, .gun-card.locked::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.75);
+    border-radius: 3px;
+    z-index: 1;
+  }
+  /* Lock badge on top */
+  .diff-card.locked::after, .gun-card.locked::after {
+    content: '🔒  LOCKED';
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 15px;
+    letter-spacing: 3px;
+    color: rgba(255,255,255,0.45);
+    z-index: 2;
+    white-space: nowrap;
+  }
 
   .go-btn {
     font-family: 'Bebas Neue', sans-serif;
@@ -598,14 +644,14 @@
   <p class="subtitle" style="margin-bottom:32px;">HOW FAST IS YOUR DRAW?</p>
 
   <div class="diff-picker">
-    <div class="diff-card" data-diff="beginner">
+    <div class="diff-card selected" data-diff="beginner">
       <div class="diff-emoji">🌱</div>
       <div class="diff-name">BEGINNER</div>
       <div class="diff-desc">Nice and easy</div>
       <div class="diff-speed" style="color:#88ff88;">BOT: SLOW</div>
       <div class="diff-hp">YOU ❤❤❤❤❤ · BOT ❤❤❤❤</div>
     </div>
-    <div class="diff-card selected" data-diff="intermediate">
+    <div class="diff-card" data-diff="intermediate">
       <div class="diff-emoji">⚡</div>
       <div class="diff-name">INTERMEDIATE</div>
       <div class="diff-desc">A fair fight</div>
@@ -793,6 +839,7 @@
   <h2 id="gameover-title">GAME OVER</h2>
   <div id="final-result"></div>
   <div id="final-score"></div>
+  <div id="unlock-msg"></div>
   <div class="btn-row">
     <button class="go-btn primary" id="play-again-btn">PLAY AGAIN</button>
     <button class="go-btn" id="change-map-btn">CHANGE MAP</button>
@@ -801,7 +848,84 @@
 
 <script>
 // ── VERSION ──
-const VERSION = 'v2.3';
+const VERSION = 'v2.4';
+
+// ── Progression / unlock system ──
+// Progress is saved to localStorage so it persists between sessions.
+// Beat a difficulty to unlock the next difficulty and stronger guns.
+let unlockedDifficulties = JSON.parse(localStorage.getItem('csUnlockedDiffs') || '["beginner"]');
+let unlockedGuns         = JSON.parse(localStorage.getItem('csUnlockedGuns')  || '["m1911"]');
+
+// What beating each difficulty unlocks
+const UNLOCK_MAP = {
+  beginner:     { difficulties: ['intermediate'], guns: ['revolver', 'shotgun']  },
+  intermediate: { difficulties: ['advanced'],     guns: ['deagle',   'sniper']   },
+  advanced:     { difficulties: ['extreme'],       guns: ['flintlock']            },
+  extreme:      { difficulties: [],               guns: []                       },
+};
+
+// Apply locked/unlocked visual state to all difficulty and gun cards
+function applyLockState() {
+  document.querySelectorAll('.diff-card').forEach(card => {
+    const diff = card.dataset.diff;
+    if (unlockedDifficulties.includes(diff)) {
+      card.classList.remove('locked');
+    } else {
+      card.classList.add('locked');
+      // If this locked card was selected, fall back to beginner
+      if (card.classList.contains('selected')) {
+        card.classList.remove('selected');
+        document.querySelector('.diff-card[data-diff="beginner"]').classList.add('selected');
+        selectedDifficulty = 'beginner';
+      }
+    }
+  });
+
+  document.querySelectorAll('.gun-card').forEach(card => {
+    const gun = card.dataset.gun;
+    if (unlockedGuns.includes(gun)) {
+      card.classList.remove('locked');
+    } else {
+      card.classList.add('locked');
+      // If this locked card was selected, fall back to m1911
+      if (card.classList.contains('selected')) {
+        card.classList.remove('selected');
+        document.querySelector('.gun-card[data-gun="m1911"]').classList.add('selected');
+        selectedGun = 'm1911';
+      }
+    }
+  });
+}
+
+// Check what gets unlocked after winning a difficulty; returns an array of new unlock names
+function checkAndUnlock(difficulty) {
+  const rules = UNLOCK_MAP[difficulty];
+  if (!rules) return [];
+
+  const newUnlocks = [];
+
+  rules.difficulties.forEach(d => {
+    if (!unlockedDifficulties.includes(d)) {
+      unlockedDifficulties.push(d);
+      newUnlocks.push(d.toUpperCase());
+    }
+  });
+
+  rules.guns.forEach(g => {
+    if (!unlockedGuns.includes(g)) {
+      unlockedGuns.push(g);
+      const gun = GUNS.find(x => x.key === g);
+      if (gun) newUnlocks.push(gun.name);
+    }
+  });
+
+  if (newUnlocks.length > 0) {
+    localStorage.setItem('csUnlockedDiffs', JSON.stringify(unlockedDifficulties));
+    localStorage.setItem('csUnlockedGuns',  JSON.stringify(unlockedGuns));
+  }
+
+  return newUnlocks;
+}
 
 // ── Map definitions ──
 const MAPS = {
@@ -896,7 +1020,7 @@ const DIFFICULTY_PRESETS = {
   advanced:     { minMs: 260,  maxMs: 650,  roundBonus: 80,  playerHp: 2, botHp: 8  },
   extreme:      { minMs: 80,   maxMs: 300,  roundBonus: 100, playerHp: 1, botHp: 10 },
 };
-let selectedDifficulty = 'intermediate';
+let selectedDifficulty = 'beginner';
 let botMinMs      = 500;
 let botMaxMs      = 1100;
 let botRoundBonus = 60;
@@ -955,6 +1079,7 @@ document.querySelectorAll('.diff-card').forEach(card => {
 document.getElementById('start-btn').addEventListener('click', () => {
   showScreen(startScreen, false);
   showScreen(difficultyScreen, true);
+  applyLockState();
 });
 
 // ── Back to map button ──
@@ -974,6 +1099,7 @@ document.getElementById('confirm-diff-btn').addEventListener('click', () => {
   botHpMax      = preset.botHp;
   showScreen(difficultyScreen, false);
   showScreen(gunScreen, true);
+  applyLockState();
   renderGunCards();
 });
 
@@ -1214,6 +1340,20 @@ function showGameOver() {
   const botHpStr    = '❤'.repeat(Math.max(botHp, 0))    || '💀';
   document.getElementById('final-score').textContent =
     `YOU  ${playerHpStr}  ·  BOT  ${botHpStr}`;
+
+  // If the player won, check for new unlocks and celebrate them
+  const unlockMsgEl = document.getElementById('unlock-msg');
+  if (youWin) {
+    const newUnlocks = checkAndUnlock(selectedDifficulty);
+    if (newUnlocks.length > 0) {
+      unlockMsgEl.textContent = '🔓  UNLOCKED: ' + newUnlocks.join('  ·  ');
+      unlockMsgEl.style.display = 'block';
+    } else {
+      unlockMsgEl.style.display = 'none';
+    }
+  } else {
+    unlockMsgEl.style.display = 'none';
+  }
 }
 
 // ══════════════════════════════
