@@ -365,27 +365,29 @@
   .hp-who.you { color: var(--hud-green); }
   .hp-who.bot { color: var(--danger-red); }
 
-  .hp-bar { display: flex; gap: 4px; }
-
-  /* Individual HP segment pip */
-  .hp-seg {
-    width: 20px;
+  /* HP bar track (the empty container) */
+  .hp-bar-track {
+    width: 160px;
     height: 14px;
-    border-radius: 2px;
+    background: rgba(255,255,255,0.08);
     border: 1px solid rgba(255,255,255,0.18);
-    transition: background 0.25s, box-shadow 0.25s;
+    border-radius: 3px;
+    overflow: hidden;
   }
-  .hp-seg.alive-you {
-    background: var(--hud-green);
-    box-shadow: 0 0 7px rgba(0,255,136,0.55);
+
+  /* HP bar fill (shrinks as HP is lost) */
+  .hp-bar-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.35s cubic-bezier(0.4, 0, 0.2, 1);
   }
-  .hp-seg.alive-bot {
-    background: var(--danger-red);
-    box-shadow: 0 0 7px rgba(255,34,68,0.55);
+  .hp-bar-fill.you {
+    background: linear-gradient(90deg, #00cc66, var(--hud-green));
+    box-shadow: 0 0 10px rgba(0,255,136,0.5);
   }
-  .hp-seg.dead {
-    background: rgba(255,255,255,0.07);
-    box-shadow: none;
+  .hp-bar-fill.bot {
+    background: linear-gradient(90deg, var(--danger-red), #ff6688);
+    box-shadow: 0 0 10px rgba(255,34,68,0.5);
   }
 
   #map-label {
@@ -551,7 +553,7 @@
 <body>
 
 <!-- VERSION badge -->
-<div id="version-badge">v1.9</div>
+<div id="version-badge">v2.0</div>
 
 <!-- ══ START SCREEN ══ -->
 <div id="start-screen" class="screen active">
@@ -753,11 +755,15 @@
       <!-- Player HP bar (left side, green) -->
       <div class="hp-wrap">
         <span class="hp-who you">YOU</span>
-        <div id="player-hp-bar" class="hp-bar"></div>
+        <div class="hp-bar-track">
+          <div id="player-hp-fill" class="hp-bar-fill you" style="width:100%"></div>
+        </div>
       </div>
       <!-- Bot HP bar (right side, red) -->
       <div class="hp-wrap">
-        <div id="bot-hp-bar" class="hp-bar"></div>
+        <div class="hp-bar-track">
+          <div id="bot-hp-fill" class="hp-bar-fill bot" style="width:100%"></div>
+        </div>
         <span class="hp-who bot">BOT</span>
       </div>
     </div>
@@ -792,7 +798,7 @@
 
 <script>
 // ── VERSION ──
-const VERSION = 'v1.9';
+const VERSION = 'v2.0';
 
 // ── Map definitions ──
 const MAPS = {
@@ -1213,23 +1219,12 @@ function showGameOver() {
 function updateHUD() {
   roundNumEl.textContent = currentRound;
 
-  // Rebuild player HP pips (green when alive, dark when lost)
-  const playerBar = document.getElementById('player-hp-bar');
-  playerBar.innerHTML = '';
-  for (let i = 0; i < playerHpMax; i++) {
-    const seg = document.createElement('div');
-    seg.className = 'hp-seg ' + (i < playerHp ? 'alive-you' : 'dead');
-    playerBar.appendChild(seg);
-  }
+  // Set bar width as a percentage of max HP so it smoothly depletes
+  const playerPct = playerHpMax > 0 ? Math.max(0, playerHp / playerHpMax * 100) : 0;
+  const botPct    = botHpMax    > 0 ? Math.max(0, botHp    / botHpMax    * 100) : 0;
 
-  // Rebuild bot HP pips (red when alive, dark when lost)
-  const botBar = document.getElementById('bot-hp-bar');
-  botBar.innerHTML = '';
-  for (let i = 0; i < botHpMax; i++) {
-    const seg = document.createElement('div');
-    seg.className = 'hp-seg ' + (i < botHp ? 'alive-bot' : 'dead');
-    botBar.appendChild(seg);
-  }
+  document.getElementById('player-hp-fill').style.width = playerPct + '%';
+  document.getElementById('bot-hp-fill').style.width    = botPct    + '%';
 }
 
 function setStatus(text, color) {
