@@ -549,7 +549,7 @@
   #gameover-screen .btn-row { display: flex; gap: 14px; margin-top: 10px; }
 
   /* ── Locked card overlay ── */
-  .diff-card.locked, .gun-card.locked {
+  .diff-card.locked, .gun-card.locked, .map-card.locked {
     cursor: not-allowed;
     pointer-events: none;
     position: relative;
@@ -557,7 +557,7 @@
     box-shadow: none !important;
   }
   /* Dark overlay covers the card content */
-  .diff-card.locked::before, .gun-card.locked::before {
+  .diff-card.locked::before, .gun-card.locked::before, .map-card.locked::before {
     content: '';
     position: absolute;
     inset: 0;
@@ -566,7 +566,7 @@
     z-index: 1;
   }
   /* Lock badge on top */
-  .diff-card.locked::after, .gun-card.locked::after {
+  .diff-card.locked::after, .gun-card.locked::after, .map-card.locked::after {
     content: '🔒  LOCKED';
     position: absolute;
     top: 50%; left: 50%;
@@ -848,7 +848,7 @@
 
 <script>
 // ── VERSION ──
-const VERSION = 'v2.5';
+const VERSION = 'v2.6';
 
 // ── Progression / unlock system ──
 // Progress is saved to localStorage so it persists between sessions.
