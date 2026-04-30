@@ -619,7 +619,7 @@
 <body>
 
 <!-- VERSION badge -->
-<div id="version-badge">v2.9</div>
+<div id="version-badge">v3.0</div>
 
 <!-- ══ START SCREEN ══ -->
 <div id="start-screen" class="screen active">
@@ -692,6 +692,13 @@
       <div class="diff-desc">Blink and you lose</div>
       <div class="diff-speed" style="color:#ff2244;">BOT: LIGHTNING</div>
       <div class="diff-hp">YOU ❤ · BOT ❤❤❤❤❤❤❤❤❤❤</div>
+    </div>
+    <div class="diff-card" data-diff="nightmare">
+      <div class="diff-emoji">☠️</div>
+      <div class="diff-name">NIGHTMARE</div>
+      <div class="diff-desc">Basically impossible</div>
+      <div class="diff-speed" style="color:#cc00ff;">BOT: INSTANT</div>
+      <div class="diff-hp">YOU ❤ · BOT ❤❤❤❤❤❤❤❤❤❤❤❤❤❤❤</div>
     </div>
   </div>
 
@@ -869,7 +876,7 @@
 
 <script>
 // ── VERSION ──
-const VERSION = 'v2.9';
+const VERSION = 'v3.0';
 
 // ── Progression / unlock system ──
 // Progress is saved to localStorage so it persists between sessions.
@@ -884,7 +891,8 @@ const UNLOCK_MAP = {
   beginner:     { difficulties: ['intermediate'], guns: ['revolver', 'shotgun']  },
   intermediate: { difficulties: ['advanced'],     guns: ['deagle',   'sniper']   },
   advanced:     { difficulties: ['extreme'],       guns: ['flintlock']            },
-  extreme:      { difficulties: [],               guns: []                       },
+  extreme:      { difficulties: ['nightmare'],    guns: []                       },
+  nightmare:    { difficulties: [],               guns: []                       },
 };
 
 // What beating each map unlocks (the next map in the chain)
@@ -1077,6 +1085,7 @@ const DIFFICULTY_PRESETS = {
   intermediate: { minMs: 500,  maxMs: 1100, roundBonus: 60,  playerHp: 3, botHp: 6  },
   advanced:     { minMs: 260,  maxMs: 650,  roundBonus: 80,  playerHp: 2, botHp: 8  },
   extreme:      { minMs: 80,   maxMs: 300,  roundBonus: 100, playerHp: 1, botHp: 10 },
+  nightmare:    { minMs: 15,   maxMs: 80,   roundBonus: 150, playerHp: 1, botHp: 15 },
 };
 let selectedDifficulty = 'beginner';
 let botMinMs      = 500;
