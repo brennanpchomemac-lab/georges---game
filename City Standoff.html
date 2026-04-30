@@ -619,7 +619,7 @@
 <body>
 
 <!-- VERSION badge -->
-<div id="version-badge">v3.1</div>
+<div id="version-badge">v3.2</div>
 
 <!-- ══ START SCREEN ══ -->
 <div id="start-screen" class="screen active">
@@ -814,6 +814,23 @@
       </div>
     </div>
 
+    <div class="gun-card" data-gun="railgun">
+      <canvas id="gc-railgun" width="116" height="50"></canvas>
+      <div class="gun-name">RAILGUN</div>
+      <div class="gun-desc">ELECTROMAGNETIC</div>
+      <div class="stat-row"><span class="stat-label">POWER</span><div class="stat-bar"><div class="stat-fill" style="width:100%;background:var(--danger-red);"></div></div></div>
+      <div class="stat-row"><span class="stat-label">SPEED</span><div class="stat-bar"><div class="stat-fill" style="width:10%;background:var(--hud-green);"></div></div></div>
+      <div class="gun-dmg-row">
+        <span class="gun-dmg-label">DAMAGE</span>
+        <div class="gun-dmg-pips">
+          <div class="dmg-pip filled d3"></div>
+          <div class="dmg-pip filled d3"></div>
+          <div class="dmg-pip filled d3"></div>
+          <div class="dmg-pip filled d3"></div>
+        </div>
+      </div>
+    </div>
+
   <div class="gun-btn-row">
     <button id="back-to-diff-btn">← DIFFICULTY</button>
     <button id="play-btn">PLAY</button>
@@ -874,7 +891,7 @@
 
 <script>
 // ── VERSION ──
-const VERSION = 'v3.1';
+const VERSION = 'v3.2';
 
 // ── Progression / unlock system ──
 // Progress is saved to localStorage so it persists between sessions.
@@ -890,7 +907,7 @@ const UNLOCK_MAP = {
   intermediate: { difficulties: ['advanced'],     guns: ['deagle',   'sniper']   },
   advanced:     { difficulties: ['extreme'],       guns: ['flintlock']            },
   extreme:      { difficulties: ['nightmare'],    guns: []                       },
-  nightmare:    { difficulties: [],               guns: []                       },
+  nightmare:    { difficulties: [],               guns: ['railgun']              },
 };
 
 // What beating each map unlocks (the next map in the chain)
@@ -1105,6 +1122,7 @@ const GUNS = [
   { key: 'shotgun',   name: 'SAWED-OFF',    damage: 1, draw: drawGunShotgun  },
   { key: 'sniper',    name: 'SNIPER',       damage: 2, draw: drawGunSniper   },
   { key: 'flintlock', name: 'FLINTLOCK',    damage: 3, draw: drawGunFlintlock },
+  { key: 'railgun',   name: 'RAILGUN',      damage: 4, draw: drawGunRailgun   },
 ];
 let selectedGun = 'm1911';
 
@@ -2295,6 +2313,27 @@ function drawGunFlintlock(cx, w, h) {
   // Trigger guard
   cx.beginPath();
   cx.arc(w*.2, h*.58, w*.09, 0, Math.PI);
+  cx.fill();
+}
+
+function drawGunRailgun(cx, w, h) {
+  // Thick main barrel — long and imposing
+  cx.fillRect(w*.18, h*.26, w*.78, h*.2);
+  // Second rail underneath (twin-rail design)
+  cx.fillRect(w*.18, h*.52, w*.78, h*.12);
+  // Power housing / receiver block at the rear
+  cx.fillRect(w*.06, h*.14, w*.22, h*.62);
+  // Grip
+  cx.fillRect(w*.1,  h*.68, w*.14, h*.28);
+  // Electromagnetic coil rings along the barrel
+  for (let i = 0; i < 5; i++) {
+    cx.fillRect(w*.32 + i * w*.12, h*.2, w*.05, h*.46);
+  }
+  // Muzzle cap at the tip
+  cx.fillRect(w*.9, h*.2, w*.06, h*.44);
+  // Trigger guard
+  cx.beginPath();
+  cx.arc(w*.24, h*.66, w*.09, 0, Math.PI);
   cx.fill();
 }
 
