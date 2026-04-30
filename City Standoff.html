@@ -416,7 +416,7 @@
 <body>
 
 <!-- VERSION badge -->
-<div id="version-badge">v1.5</div>
+<div id="version-badge">v1.6</div>
 
 <!-- ══ START SCREEN ══ -->
 <div id="start-screen" class="screen active">
@@ -535,7 +535,7 @@
 
 <script>
 // ── VERSION ──
-const VERSION = 'v1.5';
+const VERSION = 'v1.6';
 
 // ── Map definitions ──
 const MAPS = {
@@ -1266,102 +1266,286 @@ function drawTumbleweed(ctx, x, y, r) {
 
 
 function drawBot(ctx, W, H, map, horizonY = H * 0.58) {
-  const cx = W / 2;
-  const groundY = horizonY;
-
-  // Bot uses the live botX position updated every frame by animateScene
-  // Small vertical bob based on movement speed (faster = more bounce)
-  const bobY = Math.abs(Math.sin(sceneTime * 4)) * (botSpeed * 0.6);
-  // Lean slightly in the direction of travel — makes movement feel physical
+  const groundY   = horizonY;
+  const bobY      = Math.abs(Math.sin(sceneTime * 4)) * (botSpeed * 0.6);
   const leanAngle = botDir * Math.min(botSpeed * 0.018, 0.12);
+  const bodyW     = Math.min(W * 0.11, 90);
+  const bodyH     = bodyW * 2.1;
+  const headR     = bodyW * 0.42;
+  const botCX     = W / 2 + botX;
+  const botFeetY  = groundY - 2 + bobY;
 
-  const bodyW = Math.min(W * 0.11, 90);
-  const bodyH = bodyW * 2.1;
-  const headR = bodyW * 0.42;
-
-  const botCX = W / 2 + botX;
-  const botFeetY = groundY - 2 + bobY;
-  const botTopY  = botFeetY - bodyH - headR * 2;
-
-  // Shadow on ground (doesn't rotate with lean)
+  // Shadow (not rotated with lean)
   ctx.beginPath();
   ctx.ellipse(botCX, groundY + 4, bodyW * 0.7, 8, 0, 0, Math.PI * 2);
   ctx.fillStyle = 'rgba(0,0,0,0.55)';
   ctx.fill();
 
-  // Save context and apply lean rotation around bot's feet
   ctx.save();
   ctx.translate(botCX, botFeetY);
   ctx.rotate(leanAngle);
 
-  // Body
-  ctx.fillStyle = '#111115';
-  ctx.beginPath();
-  ctx.rect(-bodyW/2, -bodyH, bodyW, bodyH);
-  ctx.fill();
+  // Draw the character matching the current map
+  if      (selectedMap === 'western') drawBotCowboy(ctx, bodyW, bodyH, headR);
+  else if (selectedMap === 'newyork') drawBotMobster(ctx, bodyW, bodyH, headR);
+  else if (selectedMap === 'tokyo')   drawBotNinja(ctx, bodyW, bodyH, headR, map);
+  else                                drawBotGentleman(ctx, bodyW, bodyH, headR, map);
 
-  // Body outline glow
-  ctx.strokeStyle = map.accentColor;
-  ctx.globalAlpha = 0.35;
-  ctx.lineWidth = 2;
-  ctx.strokeRect(-bodyW/2, -bodyH, bodyW, bodyH);
-  ctx.globalAlpha = 1;
+  // Gun arm (same for all)
+  drawBotGunArm(ctx, bodyW, bodyH);
 
-  // Head
-  ctx.beginPath();
-  ctx.arc(0, -bodyH - headR, headR, 0, Math.PI * 2);
-  ctx.fillStyle = '#0e0e14';
-  ctx.fill();
-  ctx.strokeStyle = map.accentColor;
-  ctx.globalAlpha = 0.4;
-  ctx.lineWidth = 2;
-  ctx.stroke();
-  ctx.globalAlpha = 1;
-
-  // Eyes — glowing
-  const eyeY = -bodyH - headR + 2;
-  const eyeSpacing = headR * 0.45;
-  [-eyeSpacing, eyeSpacing].forEach(ex => {
-    const eyeGlow = ctx.createRadialGradient(ex, eyeY, 0, ex, eyeY, 8);
-    eyeGlow.addColorStop(0, map.accentColor);
-    eyeGlow.addColorStop(1, 'transparent');
-    ctx.fillStyle = eyeGlow;
-    ctx.beginPath();
-    ctx.arc(ex, eyeY, 8, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = map.accentColor;
-    ctx.beginPath();
-    ctx.arc(ex, eyeY, 3, 0, Math.PI * 2);
-    ctx.fill();
-  });
-
-  // Gun arm
-  const armLength = bodyW * 0.95;
-  const armY = -bodyH * 0.55;
-  ctx.strokeStyle = '#1a1a22';
-  ctx.lineWidth = bodyW * 0.22;
-  ctx.lineCap = 'round';
-  ctx.beginPath();
-  ctx.moveTo(bodyW/2, armY);
-  ctx.lineTo(bodyW/2 + armLength, armY + 10);
-  ctx.stroke();
-  // Gun barrel
-  ctx.strokeStyle = '#333';
-  ctx.lineWidth = bodyW * 0.1;
-  ctx.beginPath();
-  ctx.moveTo(bodyW/2 + armLength * 0.5, armY + 5);
-  ctx.lineTo(bodyW/2 + armLength + 14, armY + 12);
-  ctx.stroke();
-
-  // [ TARGET ] label above head
-  ctx.font = `bold ${Math.round(bodyW * 0.22)}px 'Share Tech Mono', monospace`;
-  ctx.fillStyle = map.accentColor;
+  // Character label above head
+  const labels = { western: '[ OUTLAW ]', newyork: '[ MOBSTER ]', tokyo: '[ SHINOBI ]', london: '[ VILLAIN ]' };
+  ctx.font       = `bold ${Math.round(bodyW * 0.22)}px 'Share Tech Mono', monospace`;
+  ctx.fillStyle  = map.accentColor;
   ctx.globalAlpha = 0.7;
-  ctx.textAlign = 'center';
-  ctx.fillText('[ TARGET ]', 0, -bodyH - headR * 2 - 14);
+  ctx.textAlign  = 'center';
+  ctx.fillText(labels[selectedMap] || '[ TARGET ]', 0, -bodyH - headR * 4.5);
   ctx.globalAlpha = 1;
 
   ctx.restore();
+}
+
+// Shared gun arm — right arm extended holding a pistol
+function drawBotGunArm(ctx, bodyW, bodyH) {
+  const armLen = bodyW * 0.95;
+  const armY   = -bodyH * 0.58;
+  ctx.lineCap     = 'round';
+  ctx.lineWidth   = bodyW * 0.22;
+  ctx.strokeStyle = '#1a1a1a';
+  ctx.beginPath();
+  ctx.moveTo(bodyW / 2, armY);
+  ctx.lineTo(bodyW / 2 + armLen, armY + 8);
+  ctx.stroke();
+  ctx.strokeStyle = '#2a2a2a';
+  ctx.lineWidth   = bodyW * 0.1;
+  ctx.beginPath();
+  ctx.moveTo(bodyW / 2 + armLen * 0.4, armY + 4);
+  ctx.lineTo(bodyW / 2 + armLen + 16,  armY + 10);
+  ctx.stroke();
+}
+
+// WESTERN: cowboy bandit with big hat, red bandana, leather vest
+function drawBotCowboy(ctx, bodyW, bodyH, headR) {
+  // Boots
+  ctx.fillStyle = '#2a1200';
+  ctx.fillRect(-bodyW * 0.44, -bodyW * 0.38, bodyW * 0.4,  bodyW * 0.38);
+  ctx.fillRect( bodyW * 0.04, -bodyW * 0.38, bodyW * 0.4,  bodyW * 0.38);
+  // Brown pants
+  ctx.fillStyle = '#6b4420';
+  ctx.fillRect(-bodyW / 2, -bodyH * 0.55, bodyW, bodyH * 0.55);
+  // Cream shirt
+  ctx.fillStyle = '#d6c09a';
+  ctx.fillRect(-bodyW / 2, -bodyH, bodyW, bodyH * 0.46);
+  // Dark leather vest (shirt visible in centre gap)
+  ctx.fillStyle = '#3a1e00';
+  ctx.fillRect(-bodyW * 0.44, -bodyH, bodyW * 0.36, bodyH * 0.44);
+  ctx.fillRect( bodyW * 0.08, -bodyH, bodyW * 0.36, bodyH * 0.44);
+  // Belt + gold buckle
+  ctx.fillStyle = '#3a1e00';
+  ctx.fillRect(-bodyW / 2, -bodyH * 0.57, bodyW, bodyH * 0.06);
+  ctx.fillStyle = '#d4a800';
+  ctx.fillRect(-bodyW * 0.1, -bodyH * 0.59, bodyW * 0.2, bodyH * 0.1);
+  // Skin-tone head
+  ctx.beginPath();
+  ctx.arc(0, -bodyH - headR, headR, 0, Math.PI * 2);
+  ctx.fillStyle = '#c8906a';
+  ctx.fill();
+  // Red bandana covering lower face
+  ctx.fillStyle = '#cc2200';
+  ctx.fillRect(-headR, -bodyH - headR * 1.25, headR * 2, headR * 0.95);
+  ctx.beginPath();
+  ctx.arc(headR, -bodyH - headR * 0.82, headR * 0.18, 0, Math.PI * 2);
+  ctx.fillStyle = '#aa1800';
+  ctx.fill();
+  // Narrow menacing eyes above the bandana
+  ctx.fillStyle = '#1a0800';
+  [-headR * 0.38, headR * 0.38].forEach(ex => {
+    ctx.fillRect(ex - headR * 0.22, -bodyH - headR * 1.32, headR * 0.44, headR * 0.2);
+  });
+  // Wide-brim cowboy hat — brim
+  ctx.fillStyle = '#3d1f00';
+  ctx.beginPath();
+  ctx.ellipse(0, -bodyH - headR * 1.9, headR * 1.85, headR * 0.28, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // Crown (tapered shape)
+  ctx.fillStyle = '#4e2800';
+  ctx.beginPath();
+  ctx.moveTo(-headR * 0.95, -bodyH - headR * 1.9);
+  ctx.lineTo(-headR * 0.85, -bodyH - headR * 3.45);
+  ctx.lineTo( headR * 0.85, -bodyH - headR * 3.45);
+  ctx.lineTo( headR * 0.95, -bodyH - headR * 1.9);
+  ctx.closePath(); ctx.fill();
+  // Crown dent + gold band
+  ctx.fillStyle = '#3a1e00';
+  ctx.fillRect(-headR * 0.22, -bodyH - headR * 3.45, headR * 0.44, headR * 0.35);
+  ctx.fillStyle = '#c8a000';
+  ctx.fillRect(-headR * 0.95, -bodyH - headR * 2.1, headR * 1.9, headR * 0.2);
+}
+
+// NEW YORK: pinstripe-suited fedora mobster
+function drawBotMobster(ctx, bodyW, bodyH, headR) {
+  // Black shoes
+  ctx.fillStyle = '#0d0d0d';
+  ctx.fillRect(-bodyW * 0.44, -bodyW * 0.28, bodyW * 0.4, bodyW * 0.28);
+  ctx.fillRect( bodyW * 0.04, -bodyW * 0.28, bodyW * 0.4, bodyW * 0.28);
+  // Dark pinstripe suit (legs + jacket as one block)
+  ctx.fillStyle = '#1e1e28';
+  ctx.fillRect(-bodyW / 2, -bodyH, bodyW, bodyH);
+  // Pinstripes
+  ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+  ctx.lineWidth = 1;
+  for (let i = -2; i <= 2; i++) {
+    ctx.beginPath();
+    ctx.moveTo(i * bodyW * 0.22, -bodyH);
+    ctx.lineTo(i * bodyW * 0.22, 0);
+    ctx.stroke();
+  }
+  // Lapels
+  ctx.fillStyle = '#14141c';
+  ctx.beginPath();
+  ctx.moveTo(-bodyW * 0.06, -bodyH); ctx.lineTo(-bodyW * 0.32, -bodyH * 0.72); ctx.lineTo(-bodyW * 0.08, -bodyH * 0.62); ctx.closePath(); ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo( bodyW * 0.06, -bodyH); ctx.lineTo( bodyW * 0.32, -bodyH * 0.72); ctx.lineTo( bodyW * 0.08, -bodyH * 0.62); ctx.closePath(); ctx.fill();
+  // White shirt + red tie
+  ctx.fillStyle = '#e8e8f0';
+  ctx.fillRect(-bodyW * 0.08, -bodyH, bodyW * 0.16, bodyH * 0.44);
+  ctx.fillStyle = '#8b0000';
+  ctx.beginPath();
+  ctx.moveTo(-bodyW * 0.04, -bodyH); ctx.lineTo(bodyW * 0.04, -bodyH);
+  ctx.lineTo(bodyW * 0.02, -bodyH * 0.6); ctx.lineTo(-bodyW * 0.02, -bodyH * 0.6);
+  ctx.closePath(); ctx.fill();
+  // Skin head + stubble
+  ctx.beginPath();
+  ctx.arc(0, -bodyH - headR, headR, 0, Math.PI * 2);
+  ctx.fillStyle = '#c8956c'; ctx.fill();
+  ctx.fillStyle = 'rgba(40,20,10,0.25)';
+  ctx.beginPath();
+  ctx.ellipse(0, -bodyH - headR * 0.55, headR * 0.72, headR * 0.48, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // Eyes
+  ctx.fillStyle = '#111';
+  [-headR * 0.38, headR * 0.38].forEach(ex => {
+    ctx.beginPath(); ctx.arc(ex, -bodyH - headR - headR * 0.08, headR * 0.14, 0, Math.PI * 2); ctx.fill();
+  });
+  // Fedora brim
+  ctx.fillStyle = '#111';
+  ctx.beginPath();
+  ctx.ellipse(0, -bodyH - headR * 1.82, headR * 1.55, headR * 0.22, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // Crown
+  ctx.fillStyle = '#1a1a1a';
+  ctx.fillRect(-headR * 0.9, -bodyH - headR * 1.82 - headR * 1.1, headR * 1.8, headR * 1.1);
+  // Fedora dent + white band
+  ctx.fillStyle = '#0d0d0d';
+  ctx.fillRect(-headR * 0.22, -bodyH - headR * 2.9, headR * 0.44, headR * 0.28);
+  ctx.fillStyle = '#e0e0d8';
+  ctx.fillRect(-headR * 0.9, -bodyH - headR * 1.98, headR * 1.8, headR * 0.16);
+}
+
+// TOKYO: all-black ninja with glowing eye slit and red sash
+function drawBotNinja(ctx, bodyW, bodyH, headR, map) {
+  // Soft ninja shoes
+  ctx.fillStyle = '#080808';
+  ctx.fillRect(-bodyW * 0.44, -bodyW * 0.25, bodyW * 0.4, bodyW * 0.25);
+  ctx.fillRect( bodyW * 0.04, -bodyW * 0.25, bodyW * 0.4, bodyW * 0.25);
+  // All-black outfit
+  ctx.fillStyle = '#0c0c0c';
+  ctx.fillRect(-bodyW / 2, -bodyH, bodyW, bodyH);
+  // Red sash belt
+  ctx.fillStyle = '#cc0000';
+  ctx.fillRect(-bodyW / 2, -bodyH * 0.57, bodyW, bodyH * 0.07);
+  ctx.beginPath();
+  ctx.arc(-bodyW * 0.12, -bodyH * 0.535, bodyW * 0.1, 0, Math.PI * 2);
+  ctx.fillStyle = '#aa0000'; ctx.fill();
+  // Glowing accent seams on suit
+  ctx.strokeStyle = map.accentColor;
+  ctx.globalAlpha = 0.22; ctx.lineWidth = 1;
+  [-bodyW * 0.28, bodyW * 0.28].forEach(x => {
+    ctx.beginPath(); ctx.moveTo(x, -bodyH); ctx.lineTo(x, -bodyH * 0.58); ctx.stroke();
+  });
+  ctx.globalAlpha = 1;
+  // Black hood — full face covered
+  ctx.beginPath();
+  ctx.arc(0, -bodyH - headR, headR, 0, Math.PI * 2);
+  ctx.fillStyle = '#0a0a0a'; ctx.fill();
+  // Glowing eye slit
+  const eyeY = -bodyH - headR - headR * 0.05;
+  const slitGrad = ctx.createLinearGradient(-headR * 0.65, eyeY, headR * 0.65, eyeY);
+  slitGrad.addColorStop(0,   'transparent');
+  slitGrad.addColorStop(0.2, map.accentColor);
+  slitGrad.addColorStop(0.8, map.accentColor);
+  slitGrad.addColorStop(1,   'transparent');
+  ctx.fillStyle = slitGrad;
+  ctx.fillRect(-headR * 0.7, eyeY - headR * 0.13, headR * 1.4, headR * 0.26);
+  ctx.fillStyle = 'rgba(255,255,255,0.9)';
+  [-headR * 0.3, headR * 0.3].forEach(ex => {
+    ctx.beginPath(); ctx.arc(ex, eyeY, headR * 0.1, 0, Math.PI * 2); ctx.fill();
+  });
+}
+
+// LONDON: bowler-hat gentleman villain with monocle and mustache
+function drawBotGentleman(ctx, bodyW, bodyH, headR, map) {
+  // Oxford shoes
+  ctx.fillStyle = '#1a0d00';
+  ctx.fillRect(-bodyW * 0.44, -bodyW * 0.3, bodyW * 0.4, bodyW * 0.3);
+  ctx.fillRect( bodyW * 0.04, -bodyW * 0.3, bodyW * 0.4, bodyW * 0.3);
+  // Dark navy trousers
+  ctx.fillStyle = '#1a1e30';
+  ctx.fillRect(-bodyW / 2, -bodyH * 0.55, bodyW, bodyH * 0.55);
+  ctx.strokeStyle = 'rgba(255,255,255,0.07)'; ctx.lineWidth = 1;
+  [-bodyW * 0.15, bodyW * 0.15].forEach(x => {
+    ctx.beginPath(); ctx.moveTo(x, -bodyH * 0.55); ctx.lineTo(x, 0); ctx.stroke();
+  });
+  // Dark trench coat
+  ctx.fillStyle = '#1c2030';
+  ctx.fillRect(-bodyW / 2, -bodyH, bodyW, bodyH * 0.46);
+  // Lapels
+  ctx.fillStyle = '#141820';
+  ctx.beginPath();
+  ctx.moveTo(-bodyW * 0.05, -bodyH); ctx.lineTo(-bodyW * 0.36, -bodyH * 0.68); ctx.lineTo(-bodyW * 0.05, -bodyH * 0.56); ctx.closePath(); ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo( bodyW * 0.05, -bodyH); ctx.lineTo( bodyW * 0.36, -bodyH * 0.68); ctx.lineTo( bodyW * 0.05, -bodyH * 0.56); ctx.closePath(); ctx.fill();
+  // White shirt + dark tie
+  ctx.fillStyle = '#dde0ee';
+  ctx.fillRect(-bodyW * 0.07, -bodyH, bodyW * 0.14, bodyH * 0.44);
+  ctx.fillStyle = '#2a3060';
+  ctx.beginPath();
+  ctx.moveTo(-bodyW * 0.03, -bodyH); ctx.lineTo(bodyW * 0.03, -bodyH);
+  ctx.lineTo(bodyW * 0.025, -bodyH * 0.62); ctx.lineTo(-bodyW * 0.025, -bodyH * 0.62);
+  ctx.closePath(); ctx.fill();
+  // Pale head
+  ctx.beginPath();
+  ctx.arc(0, -bodyH - headR, headR, 0, Math.PI * 2);
+  ctx.fillStyle = '#ddb899'; ctx.fill();
+  // Handlebar mustache
+  ctx.fillStyle = '#5a3520';
+  [-1, 1].forEach(side => {
+    ctx.beginPath();
+    ctx.ellipse(side * headR * 0.32, -bodyH - headR * 0.62, headR * 0.3, headR * 0.12, side * 0.3, 0, Math.PI * 2);
+    ctx.fill();
+  });
+  // Eyes
+  ctx.fillStyle = '#1a1a2a';
+  [-headR * 0.38, headR * 0.38].forEach(ex => {
+    ctx.beginPath(); ctx.arc(ex, -bodyH - headR - headR * 0.1, headR * 0.14, 0, Math.PI * 2); ctx.fill();
+  });
+  // Monocle on right eye
+  ctx.strokeStyle = '#c8a060'; ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.arc(headR * 0.38, -bodyH - headR - headR * 0.1, headR * 0.24, 0, Math.PI * 2);
+  ctx.stroke();
+  // Bowler hat — narrow brim + domed crown
+  ctx.fillStyle = '#0a0a14';
+  ctx.beginPath();
+  ctx.ellipse(0, -bodyH - headR * 1.82, headR * 1.35, headR * 0.2, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#111118';
+  ctx.beginPath();
+  ctx.arc(0, -bodyH - headR * 2.6, headR * 0.92, Math.PI, Math.PI * 2);
+  ctx.lineTo( headR * 0.92, -bodyH - headR * 1.82);
+  ctx.lineTo(-headR * 0.92, -bodyH - headR * 1.82);
+  ctx.closePath(); ctx.fill();
 }
 
 </script>
