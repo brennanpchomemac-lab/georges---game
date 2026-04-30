@@ -220,6 +220,82 @@
   #back-to-map-btn:hover { border-color: rgba(255,255,255,0.5); color: #fff; }
 
   /* ══════════════════════════════
+     GUN SCREEN
+  ══════════════════════════════ */
+  #gun-screen { background: #0a0a0f; gap: 0; }
+
+  .gun-picker {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 14px;
+    margin-bottom: 32px;
+    max-width: 900px;
+  }
+
+  .gun-card {
+    width: 136px;
+    border: 2px solid rgba(255,255,255,0.15);
+    border-radius: 4px;
+    padding: 12px 10px 14px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.2s, transform 0.15s, box-shadow 0.2s;
+    background: rgba(255,255,255,0.04);
+  }
+  .gun-card:hover { border-color: var(--hud-green); transform: translateY(-3px); }
+  .gun-card.selected {
+    border-color: var(--hud-green);
+    box-shadow: 0 0 18px rgba(0,255,136,0.3);
+    background: rgba(0,255,136,0.06);
+  }
+  .gun-card canvas { display: block; margin: 0 auto 8px; }
+  .gun-card .gun-name {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 17px;
+    letter-spacing: 2px;
+    color: #fff;
+    margin-bottom: 3px;
+  }
+  .gun-card .gun-desc { font-size: 9px; color: rgba(255,255,255,0.38); letter-spacing: 1px; margin-bottom: 9px; }
+
+  .stat-row { display: flex; align-items: center; gap: 5px; margin-bottom: 4px; }
+  .stat-label { font-size: 8px; color: rgba(255,255,255,0.45); letter-spacing: 1px; width: 38px; text-align: right; flex-shrink: 0; }
+  .stat-bar { flex: 1; height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; overflow: hidden; }
+  .stat-fill { height: 100%; border-radius: 2px; }
+
+  .gun-btn-row { display: flex; gap: 14px; align-items: center; }
+
+  #play-btn {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 26px;
+    letter-spacing: 5px;
+    padding: 14px 52px;
+    background: var(--danger-red);
+    border: none;
+    color: #fff;
+    cursor: pointer;
+    border-radius: 2px;
+    transition: background 0.2s, transform 0.1s, box-shadow 0.2s;
+    box-shadow: 0 4px 24px rgba(255,34,68,0.4);
+  }
+  #play-btn:hover { background: #ff4466; transform: scale(1.04); box-shadow: 0 6px 32px rgba(255,34,68,0.6); }
+
+  #back-to-diff-btn {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 18px;
+    letter-spacing: 3px;
+    padding: 14px 24px;
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.2);
+    color: rgba(255,255,255,0.5);
+    cursor: pointer;
+    border-radius: 2px;
+    transition: border-color 0.2s, color 0.2s;
+  }
+  #back-to-diff-btn:hover { border-color: rgba(255,255,255,0.5); color: #fff; }
+
+  /* ══════════════════════════════
      GAME SCREEN
   ══════════════════════════════ */
   #game-screen { cursor: crosshair; }
@@ -416,7 +492,7 @@
 <body>
 
 <!-- VERSION badge -->
-<div id="version-badge">v1.6</div>
+<div id="version-badge">v1.7</div>
 
 <!-- ══ START SCREEN ══ -->
 <div id="start-screen" class="screen active">
@@ -493,6 +569,69 @@
   </div>
 </div>
 
+<!-- ══ GUN SCREEN ══ -->
+<div id="gun-screen" class="screen">
+  <h1 style="font-family:'Bebas Neue',sans-serif;font-size:clamp(40px,7vw,80px);letter-spacing:6px;color:#fff;text-shadow:0 0 40px rgba(255,34,68,0.7);line-height:1;margin-bottom:6px;">CHOOSE YOUR WEAPON</h1>
+  <p class="subtitle" style="margin-bottom:28px;">YOUR SIDEARM FOR THE DUEL</p>
+
+  <div class="gun-picker">
+
+    <div class="gun-card selected" data-gun="m1911">
+      <canvas id="gc-m1911" width="116" height="50"></canvas>
+      <div class="gun-name">M1911</div>
+      <div class="gun-desc">STANDARD ISSUE</div>
+      <div class="stat-row"><span class="stat-label">POWER</span><div class="stat-bar"><div class="stat-fill" style="width:60%;background:var(--warn-yellow);"></div></div></div>
+      <div class="stat-row"><span class="stat-label">SPEED</span><div class="stat-bar"><div class="stat-fill" style="width:60%;background:var(--hud-green);"></div></div></div>
+    </div>
+
+    <div class="gun-card" data-gun="revolver">
+      <canvas id="gc-revolver" width="116" height="50"></canvas>
+      <div class="gun-name">REVOLVER</div>
+      <div class="gun-desc">SIX SHOOTER</div>
+      <div class="stat-row"><span class="stat-label">POWER</span><div class="stat-bar"><div class="stat-fill" style="width:80%;background:var(--warn-yellow);"></div></div></div>
+      <div class="stat-row"><span class="stat-label">SPEED</span><div class="stat-bar"><div class="stat-fill" style="width:40%;background:var(--hud-green);"></div></div></div>
+    </div>
+
+    <div class="gun-card" data-gun="deagle">
+      <canvas id="gc-deagle" width="116" height="50"></canvas>
+      <div class="gun-name">DESERT EAGLE</div>
+      <div class="gun-desc">HAND CANNON</div>
+      <div class="stat-row"><span class="stat-label">POWER</span><div class="stat-bar"><div class="stat-fill" style="width:100%;background:var(--danger-red);"></div></div></div>
+      <div class="stat-row"><span class="stat-label">SPEED</span><div class="stat-bar"><div class="stat-fill" style="width:20%;background:var(--hud-green);"></div></div></div>
+    </div>
+
+    <div class="gun-card" data-gun="shotgun">
+      <canvas id="gc-shotgun" width="116" height="50"></canvas>
+      <div class="gun-name">SAWED-OFF</div>
+      <div class="gun-desc">CLOSE QUARTERS</div>
+      <div class="stat-row"><span class="stat-label">POWER</span><div class="stat-bar"><div class="stat-fill" style="width:100%;background:var(--danger-red);"></div></div></div>
+      <div class="stat-row"><span class="stat-label">SPEED</span><div class="stat-bar"><div class="stat-fill" style="width:40%;background:var(--hud-green);"></div></div></div>
+    </div>
+
+    <div class="gun-card" data-gun="sniper">
+      <canvas id="gc-sniper" width="116" height="50"></canvas>
+      <div class="gun-name">SNIPER</div>
+      <div class="gun-desc">LONG RANGE</div>
+      <div class="stat-row"><span class="stat-label">POWER</span><div class="stat-bar"><div class="stat-fill" style="width:100%;background:var(--danger-red);"></div></div></div>
+      <div class="stat-row"><span class="stat-label">SPEED</span><div class="stat-bar"><div class="stat-fill" style="width:20%;background:var(--hud-green);"></div></div></div>
+    </div>
+
+    <div class="gun-card" data-gun="uzi">
+      <canvas id="gc-uzi" width="116" height="50"></canvas>
+      <div class="gun-name">UZI</div>
+      <div class="gun-desc">RAPID FIRE</div>
+      <div class="stat-row"><span class="stat-label">POWER</span><div class="stat-bar"><div class="stat-fill" style="width:40%;background:var(--warn-yellow);"></div></div></div>
+      <div class="stat-row"><span class="stat-label">SPEED</span><div class="stat-bar"><div class="stat-fill" style="width:100%;background:var(--hud-green);"></div></div></div>
+    </div>
+
+  </div>
+
+  <div class="gun-btn-row">
+    <button id="back-to-diff-btn">← DIFFICULTY</button>
+    <button id="play-btn">PLAY</button>
+  </div>
+</div>
+
 <!-- ══ GAME SCREEN ══ -->
 <div id="game-screen" class="screen">
   <canvas id="scene-canvas"></canvas>
@@ -535,7 +674,7 @@
 
 <script>
 // ── VERSION ──
-const VERSION = 'v1.6';
+const VERSION = 'v1.7';
 
 // ── Map definitions ──
 const MAPS = {
@@ -633,9 +772,21 @@ let botMinMs      = 500;
 let botMaxMs      = 1100;
 let botRoundBonus = 60;
 
+// Gun definitions — stats are cosmetic for now, ready for gameplay use later
+const GUNS = [
+  { key: 'm1911',    name: 'M1911',        draw: drawGunM1911    },
+  { key: 'revolver', name: 'REVOLVER',     draw: drawGunRevolver },
+  { key: 'deagle',   name: 'DESERT EAGLE', draw: drawGunDeagle   },
+  { key: 'shotgun',  name: 'SAWED-OFF',    draw: drawGunShotgun  },
+  { key: 'sniper',   name: 'SNIPER',       draw: drawGunSniper   },
+  { key: 'uzi',      name: 'UZI',          draw: drawGunUzi      },
+];
+let selectedGun = 'm1911';
+
 // ── DOM refs ──
 const startScreen      = document.getElementById('start-screen');
 const difficultyScreen = document.getElementById('difficulty-screen');
+const gunScreen        = document.getElementById('gun-screen');
 const gameScreen       = document.getElementById('game-screen');
 const gameoverScreen   = document.getElementById('gameover-screen');
 const statusMsg      = document.getElementById('status-msg');
@@ -678,12 +829,36 @@ document.getElementById('back-to-map-btn').addEventListener('click', () => {
   showScreen(startScreen, true);
 });
 
-// ── Confirm difficulty → start game ──
+// ── Confirm difficulty → show gun screen ──
 document.getElementById('confirm-diff-btn').addEventListener('click', () => {
   const preset  = DIFFICULTY_PRESETS[selectedDifficulty];
   botMinMs      = preset.minMs;
   botMaxMs      = preset.maxMs;
   botRoundBonus = preset.roundBonus;
+  showScreen(difficultyScreen, false);
+  showScreen(gunScreen, true);
+  renderGunCards();
+});
+
+// ── Gun card selection ──
+document.querySelectorAll('.gun-card').forEach(card => {
+  card.addEventListener('click', () => {
+    document.querySelectorAll('.gun-card').forEach(c => c.classList.remove('selected'));
+    card.classList.add('selected');
+    selectedGun = card.dataset.gun;
+    renderGunCards();  // redraw silhouettes so selected one glows
+  });
+});
+
+// ── Back to difficulty from gun screen ──
+document.getElementById('back-to-diff-btn').addEventListener('click', () => {
+  showScreen(gunScreen, false);
+  showScreen(difficultyScreen, true);
+});
+
+// ── Play button → start game ──
+document.getElementById('play-btn').addEventListener('click', () => {
+  showScreen(gunScreen, false);
   startGame();
 });
 
@@ -753,7 +928,6 @@ function showScreen(el, show) {
 //  GAME FLOW
 // ══════════════════════════════
 function startGame() {
-  showScreen(difficultyScreen, false);
   showScreen(gameScreen, true);
   resetGame();
   beginRound();
@@ -1546,6 +1720,132 @@ function drawBotGentleman(ctx, bodyW, bodyH, headR, map) {
   ctx.lineTo( headR * 0.92, -bodyH - headR * 1.82);
   ctx.lineTo(-headR * 0.92, -bodyH - headR * 1.82);
   ctx.closePath(); ctx.fill();
+}
+
+// ══════════════════════════════
+//  GUN CARD RENDERING
+// ══════════════════════════════
+
+// Draw all six gun silhouettes onto their card canvases.
+// The selected gun gets a green glow; the rest are dim white.
+function renderGunCards() {
+  GUNS.forEach(gun => {
+    const c = document.getElementById('gc-' + gun.key);
+    if (!c) return;
+    const cx = c.getContext('2d');
+    const w  = c.width, h = c.height;
+    cx.clearRect(0, 0, w, h);
+
+    const isSelected = gun.key === selectedGun;
+    cx.fillStyle    = isSelected ? '#00ff88' : 'rgba(255,255,255,0.65)';
+    cx.shadowColor  = isSelected ? '#00ff88' : 'transparent';
+    cx.shadowBlur   = isSelected ? 10 : 0;
+
+    gun.draw(cx, w, h);
+
+    cx.shadowBlur = 0;
+  });
+}
+
+// ── Silhouette drawing functions (barrel points right, grip hangs down) ──
+
+function drawGunM1911(cx, w, h) {
+  // Slide + barrel (long horizontal block)
+  cx.fillRect(w*.16, h*.12, w*.78, h*.36);
+  // Frame (connects slide to grip)
+  cx.fillRect(w*.16, h*.12, w*.34, h*.62);
+  // Grip
+  cx.fillRect(w*.2,  h*.58, w*.22, h*.36);
+  // Trigger guard
+  cx.beginPath();
+  cx.arc(w*.4, h*.64, w*.1, 0, Math.PI);
+  cx.fill();
+}
+
+function drawGunRevolver(cx, w, h) {
+  // Short barrel
+  cx.fillRect(w*.4, h*.16, w*.54, h*.26);
+  // Frame
+  cx.fillRect(w*.2, h*.12, w*.36, h*.64);
+  // Cylinder — the key distinctive feature
+  cx.beginPath();
+  cx.arc(w*.5, h*.36, w*.17, 0, Math.PI * 2);
+  cx.fill();
+  // Grip
+  cx.fillRect(w*.2,  h*.6,  w*.2,  h*.36);
+  // Trigger guard
+  cx.beginPath();
+  cx.arc(w*.36, h*.64, w*.1, 0, Math.PI);
+  cx.fill();
+}
+
+function drawGunDeagle(cx, w, h) {
+  // Extra-thick slide (larger pistol)
+  cx.fillRect(w*.14, h*.08, w*.8, h*.44);
+  // Thick frame
+  cx.fillRect(w*.14, h*.08, w*.4, h*.78);
+  // Grip
+  cx.fillRect(w*.18, h*.66, w*.26, h*.3);
+  // Trigger guard
+  cx.beginPath();
+  cx.arc(w*.44, h*.7, w*.12, 0, Math.PI);
+  cx.fill();
+  // Serrations on top of slide
+  cx.fillStyle = 'rgba(0,0,0,0.35)';
+  for (let i = 0; i < 5; i++) {
+    cx.fillRect(w*.16 + i * w*.1, h*.1, w*.055, h*.38);
+  }
+}
+
+function drawGunShotgun(cx, w, h) {
+  // Double barrel (two thin horizontal rects)
+  cx.fillRect(w*.1, h*.24, w*.84, h*.18);
+  cx.fillRect(w*.1, h*.42, w*.84, h*.14);
+  // Stock (back end)
+  cx.fillRect(w*.06, h*.2,  w*.22, h*.58);
+  // Action / receiver
+  cx.fillRect(w*.24, h*.18, w*.28, h*.56);
+  // Pump grip under barrels
+  cx.fillRect(w*.44, h*.5,  w*.2,  h*.2);
+  // Trigger guard
+  cx.beginPath();
+  cx.arc(w*.42, h*.64, w*.09, 0, Math.PI);
+  cx.fill();
+}
+
+function drawGunSniper(cx, w, h) {
+  // Very long thin barrel
+  cx.fillRect(w*.04, h*.34, w*.92, h*.14);
+  // Scope body
+  cx.fillRect(w*.3,  h*.14, w*.36, h*.2);
+  // Scope lens caps
+  cx.beginPath(); cx.arc(w*.32, h*.24, w*.05, 0, Math.PI * 2); cx.fill();
+  cx.beginPath(); cx.arc(w*.64, h*.24, w*.05, 0, Math.PI * 2); cx.fill();
+  // Stock
+  cx.fillRect(w*.04, h*.3,  w*.28, h*.52);
+  // Pistol grip
+  cx.fillRect(w*.56, h*.44, w*.18, h*.44);
+  // Trigger guard
+  cx.beginPath();
+  cx.arc(w*.62, h*.68, w*.1, 0, Math.PI);
+  cx.fill();
+}
+
+function drawGunUzi(cx, w, h) {
+  // Compact rectangular body
+  cx.fillRect(w*.22, h*.1,  w*.52, h*.5);
+  // Short barrel poking right
+  cx.fillRect(w*.7,  h*.18, w*.24, h*.24);
+  // Box magazine hanging down
+  cx.fillRect(w*.36, h*.56, w*.2,  h*.4);
+  // Grip
+  cx.fillRect(w*.6,  h*.54, w*.18, h*.4);
+  // Trigger guard
+  cx.beginPath();
+  cx.arc(w*.66, h*.68, w*.1, 0, Math.PI);
+  cx.fill();
+  // Cocking handle on top
+  cx.fillRect(w*.6, h*.06, w*.1, h*.1);
 }
 
 </script>
