@@ -678,7 +678,7 @@
 <body>
 
 <!-- VERSION badge -->
-<div id="version-badge">v3.5</div>
+<div id="version-badge">v3.6</div>
 
 <!-- ══ WELCOME SCREEN ══ -->
 <div id="welcome-screen" class="screen active">
@@ -942,7 +942,7 @@
 
 <script>
 // ── VERSION ──
-const VERSION = 'v3.5';
+const VERSION = 'v3.6';
 
 // ── Progression / unlock system ──
 // Progress is saved to localStorage so it persists between sessions.
@@ -1740,6 +1740,53 @@ function drawScene() {
 
   // ── Bot character ──
   drawBot(ctx, W, H, map, horizonY);
+
+  // ── Player's gun (first-person view, bottom-right) ──
+  drawPlayerGun(ctx, W, H);
+}
+
+// ── First-person gun view ──
+// Draws the selected gun large in the bottom-right corner.
+// The gun is flipped horizontally (barrel points left, toward the bot)
+// and sways gently as the player moves the mouse.
+function drawPlayerGun(ctx, W, H) {
+  const gun = GUNS.find(g => g.key === selectedGun);
+  if (!gun) return;
+
+  const gunW  = 116;
+  const gunH  = 50;
+  // Scale so the gun is roughly 28% of screen width
+  const scale = (W * 0.28) / gunW;
+
+  // Base position: bottom-right corner
+  // Sways with mouse — moves the same direction as the crosshair
+  const baseX = W * 0.80;
+  const baseY = H * 0.87;
+  const swayX = lerpMouseX * 50;
+  const swayY = lerpMouseY * 30;
+  const tilt  = lerpMouseY * 0.08;  // tilts slightly up/down with vertical mouse
+
+  // ── Shadow pass (dark offset copy for depth) ──
+  ctx.save();
+  ctx.globalAlpha = 0.4;
+  ctx.translate(baseX + swayX + 6, baseY + swayY + 8);
+  ctx.rotate(tilt);
+  ctx.scale(-scale, scale);      // negative X flips barrel to point left
+  ctx.translate(-gunW * 0.5, -gunH * 0.5);
+  ctx.fillStyle = '#000';
+  gun.draw(ctx, gunW, gunH);
+  ctx.restore();
+
+  // ── Gun pass (bright silhouette) ──
+  ctx.save();
+  ctx.globalAlpha = 1;
+  ctx.translate(baseX + swayX, baseY + swayY);
+  ctx.rotate(tilt);
+  ctx.scale(-scale, scale);
+  ctx.translate(-gunW * 0.5, -gunH * 0.5);
+  ctx.fillStyle = '#cccccc';
+  gun.draw(ctx, gunW, gunH);
+  ctx.restore();
 }
 
 // Building drawing helper
