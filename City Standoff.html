@@ -503,6 +503,7 @@
     content: '';
     position: absolute;
     background: rgba(255,255,255,0.85);
+    transition: background 0.1s, box-shadow 0.1s;
   }
   #crosshair::before { width: 2px; height: 100%; left: 50%; transform: translateX(-50%); }
   #crosshair::after  { height: 2px; width: 100%; top: 50%; transform: translateY(-50%); }
@@ -513,6 +514,18 @@
     width: 34px; height: 34px;
     border: 2px solid rgba(255,255,255,0.6);
     border-radius: 50%;
+    transition: border-color 0.1s, box-shadow 0.1s;
+  }
+
+  /* Crosshair turns red when aimed at the bot */
+  #crosshair.on-target::before,
+  #crosshair.on-target::after {
+    background: var(--danger-red);
+    box-shadow: 0 0 6px rgba(255,34,68,0.9);
+  }
+  #crosshair.on-target .crosshair-circle {
+    border-color: var(--danger-red);
+    box-shadow: 0 0 14px rgba(255,34,68,0.75);
   }
 
   /* Flash overlay */
@@ -665,7 +678,7 @@
 <body>
 
 <!-- VERSION badge -->
-<div id="version-badge">v3.4</div>
+<div id="version-badge">v3.5</div>
 
 <!-- ══ WELCOME SCREEN ══ -->
 <div id="welcome-screen" class="screen active">
@@ -929,7 +942,7 @@
 
 <script>
 // ── VERSION ──
-const VERSION = 'v3.4';
+const VERSION = 'v3.5';
 
 // ── Progression / unlock system ──
 // Progress is saved to localStorage so it persists between sessions.
@@ -1296,7 +1309,20 @@ gameScreen.addEventListener('mousemove', e => {
   crosshairEl.style.top  = e.clientY + 'px';
   rawMouseX = e.clientX;
   rawMouseY = e.clientY;
+  updateCrosshairTarget();
 });
+
+// Check if crosshair is over the bot and colour it red if so.
+// Called on mousemove AND every animation frame (bot moves even when mouse is still).
+function updateCrosshairTarget() {
+  if (!gameScreen.classList.contains('active') || roundPhase === 'done') {
+    crosshairEl.classList.remove('on-target');
+    return;
+  }
+  const onBot = rawMouseX >= botHitbox.x && rawMouseX <= botHitbox.x + botHitbox.w &&
+                rawMouseY >= botHitbox.y && rawMouseY <= botHitbox.y + botHitbox.h;
+  crosshairEl.classList.toggle('on-target', onBot);
+}
 
 // ── Shoot on click (game screen) ──
 gameScreen.addEventListener('click', handleShoot);
@@ -1632,6 +1658,7 @@ function animateScene() {
   }
 
   drawScene();
+  updateCrosshairTarget();
   animFrameId = requestAnimationFrame(animateScene);
 }
 
