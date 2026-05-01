@@ -56,6 +56,52 @@
   .screen.active { display: flex; }
 
   /* ══════════════════════════════
+     WELCOME SCREEN
+  ══════════════════════════════ */
+  #welcome-screen {
+    background: #0a0a0f;
+    gap: 0;
+    cursor: pointer;
+  }
+
+  #welcome-screen .welcome-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(72px, 14vw, 160px);
+    letter-spacing: 10px;
+    color: #fff;
+    text-shadow:
+      0 0 40px rgba(255,34,68,0.8),
+      0 0 100px rgba(255,34,68,0.35);
+    line-height: 1;
+    animation: titlePulse 3s ease-in-out infinite;
+  }
+
+  #welcome-screen .welcome-sub {
+    font-size: 13px;
+    letter-spacing: 6px;
+    color: var(--warn-yellow);
+    margin-top: 10px;
+    margin-bottom: 60px;
+  }
+
+  #welcome-screen .welcome-prompt {
+    font-size: 13px;
+    letter-spacing: 4px;
+    color: rgba(255,255,255,0.45);
+    animation: blink 1.4s step-start infinite;
+  }
+
+  @keyframes titlePulse {
+    0%, 100% { text-shadow: 0 0 40px rgba(255,34,68,0.8),  0 0 100px rgba(255,34,68,0.35); }
+    50%       { text-shadow: 0 0 60px rgba(255,34,68,1.0),  0 0 140px rgba(255,34,68,0.55); }
+  }
+
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: 0; }
+  }
+
+  /* ══════════════════════════════
      START SCREEN
   ══════════════════════════════ */
   #start-screen {
@@ -619,10 +665,17 @@
 <body>
 
 <!-- VERSION badge -->
-<div id="version-badge">v3.2</div>
+<div id="version-badge">v3.3</div>
+
+<!-- ══ WELCOME SCREEN ══ -->
+<div id="welcome-screen" class="screen active">
+  <div class="welcome-title">CITY STANDOFF</div>
+  <p class="welcome-sub">FIRST PERSON · QUICK DRAW · SHOWDOWN</p>
+  <p class="welcome-prompt">CLICK OR PRESS ANY KEY TO START</p>
+</div>
 
 <!-- ══ START SCREEN ══ -->
-<div id="start-screen" class="screen active">
+<div id="start-screen" class="screen">
   <h1>CITY STANDOFF</h1>
   <p class="subtitle">FIRST PERSON · QUICK DRAW · HEALTH BARS</p>
 
@@ -779,21 +832,6 @@
       </div>
     </div>
 
-    <div class="gun-card" data-gun="sniper">
-      <canvas id="gc-sniper" width="116" height="50"></canvas>
-      <div class="gun-name">SNIPER</div>
-      <div class="gun-desc">LONG RANGE</div>
-      <div class="stat-row"><span class="stat-label">POWER</span><div class="stat-bar"><div class="stat-fill" style="width:66%;background:var(--warn-yellow);"></div></div></div>
-      <div class="stat-row"><span class="stat-label">SPEED</span><div class="stat-bar"><div class="stat-fill" style="width:20%;background:var(--hud-green);"></div></div></div>
-      <div class="gun-dmg-row">
-        <span class="gun-dmg-label">DAMAGE</span>
-        <div class="gun-dmg-pips">
-          <div class="dmg-pip filled d2"></div>
-          <div class="dmg-pip filled d2"></div>
-          <div class="dmg-pip empty"></div>
-        </div>
-      </div>
-    </div>
 
 
   </div>
@@ -891,7 +929,7 @@
 
 <script>
 // ── VERSION ──
-const VERSION = 'v3.2';
+const VERSION = 'v3.3';
 
 // ── Progression / unlock system ──
 // Progress is saved to localStorage so it persists between sessions.
@@ -904,7 +942,7 @@ let unlockedMaps         = JSON.parse(localStorage.getItem('csUnlockedMaps')  ||
 // What beating each difficulty unlocks (guns + next difficulty)
 const UNLOCK_MAP = {
   beginner:     { difficulties: ['intermediate'], guns: ['revolver', 'shotgun']  },
-  intermediate: { difficulties: ['advanced'],     guns: ['deagle',   'sniper']   },
+  intermediate: { difficulties: ['advanced'],     guns: ['deagle']               },
   advanced:     { difficulties: ['extreme'],       guns: ['flintlock']            },
   extreme:      { difficulties: ['nightmare'],    guns: []                       },
   nightmare:    { difficulties: [],               guns: ['railgun']              },
@@ -1120,7 +1158,6 @@ const GUNS = [
   { key: 'revolver',  name: 'REVOLVER',     damage: 1, draw: drawGunRevolver },
   { key: 'deagle',    name: 'DESERT EAGLE', damage: 2, draw: drawGunDeagle   },
   { key: 'shotgun',   name: 'SAWED-OFF',    damage: 1, draw: drawGunShotgun  },
-  { key: 'sniper',    name: 'SNIPER',       damage: 2, draw: drawGunSniper   },
   { key: 'flintlock', name: 'FLINTLOCK',    damage: 3, draw: drawGunFlintlock },
   { key: 'railgun',   name: 'RAILGUN',      damage: 4, draw: drawGunRailgun   },
 ];
@@ -1156,6 +1193,20 @@ document.querySelectorAll('.diff-card').forEach(card => {
     card.classList.add('selected');
     selectedDifficulty = card.dataset.diff;
   });
+});
+
+// ── Welcome screen → go to start screen on click or any key ──
+const welcomeScreen = document.getElementById('welcome-screen');
+function leaveWelcome() {
+  showScreen(welcomeScreen, false);
+  showScreen(startScreen, true);
+  applyLockState();
+}
+welcomeScreen.addEventListener('click', leaveWelcome);
+document.addEventListener('keydown', e => {
+  if (welcomeScreen.classList.contains('active')) {
+    leaveWelcome();
+  }
 });
 
 // ── Start button → go to difficulty screen ──
