@@ -665,7 +665,7 @@
 <body>
 
 <!-- VERSION badge -->
-<div id="version-badge">v3.3</div>
+<div id="version-badge">v3.4</div>
 
 <!-- ══ WELCOME SCREEN ══ -->
 <div id="welcome-screen" class="screen active">
@@ -929,7 +929,7 @@
 
 <script>
 // ── VERSION ──
-const VERSION = 'v3.3';
+const VERSION = 'v3.4';
 
 // ── Progression / unlock system ──
 // Progress is saved to localStorage so it persists between sessions.
@@ -1116,6 +1116,8 @@ let drawTime = 0; // when DRAW! appeared
 // ── Bot movement state ──
 // The bot drifts left/right at varying speeds and randomly changes direction
 let botX = 0;          // current offset from screen centre (pixels)
+// Hitbox updated every frame — used to check if the player's shot lands on the bot
+let botHitbox = { x: 0, y: 0, w: 0, h: 0 };
 let botSpeed = 0;      // current pixels-per-frame velocity
 let botDir = 1;        // 1 = right, -1 = left
 let botSpeedChangeTimer = 0;  // counts down frames until next speed change
@@ -1457,7 +1459,23 @@ function handleShoot() {
 
   if (roundPhase !== 'draw') return;
 
-  // Player wins this round
+  // Check if the shot landed on the bot's hitbox
+  const rect = canvas.getBoundingClientRect();
+  const clickX = rawMouseX - rect.left;
+  const clickY = rawMouseY - rect.top;
+  const onBot  = clickX >= botHitbox.x && clickX <= botHitbox.x + botHitbox.w &&
+                 clickY >= botHitbox.y && clickY <= botHitbox.y + botHitbox.h;
+
+  if (!onBot) {
+    // Missed — show feedback but keep the round alive so bot can still win
+    setStatus('MISSED!', 'rgba(255,255,255,0.7)');
+    setTimeout(() => {
+      if (roundPhase === 'draw') setStatus('DRAW!', 'var(--warn-yellow)');
+    }, 350);
+    return;
+  }
+
+  // Shot landed — player wins this round
   clearTimeout(botShootTimeout);
   roundPhase = 'done';
 
@@ -1936,6 +1954,15 @@ function drawBot(ctx, W, H, map, horizonY = H * 0.58) {
   const headR     = bodyW * 0.42;
   const botCX     = W / 2 + botX;
   const botFeetY  = groundY - 2 + bobY;
+
+  // Update hitbox every frame so handleShoot() always has current position.
+  // Covers torso + head with a little padding so it feels fair.
+  botHitbox = {
+    x: botCX - bodyW * 0.65,
+    y: botFeetY - bodyH - headR * 2.3,
+    w: bodyW * 1.3,
+    h: bodyH + headR * 2.3,
+  };
 
   // Shadow (not rotated with lean)
   ctx.beginPath();
