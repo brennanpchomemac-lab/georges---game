@@ -303,22 +303,6 @@
   }
   .upgrade-card.maxed { border-color: rgba(0,255,136,0.3); }
   .upgrade-card.maxed .uc-btn { border-color: rgba(0,255,136,0.4); color: var(--hud-green); background: rgba(0,255,136,0.07); }
-  /* 2× damage card — wider banner style */
-  .double-dmg-card {
-    width: 100%;
-    max-width: 500px;
-    flex-direction: row;
-    flex-wrap: wrap;
-    justify-content: space-between;
-    align-items: center;
-    gap: 10px;
-    border-color: rgba(245,200,66,0.25);
-    background: rgba(245,200,66,0.04);
-    padding: 18px 28px;
-  }
-  .double-dmg-card:hover { border-color: rgba(245,200,66,0.55); box-shadow: 0 0 20px rgba(245,200,66,0.18); }
-  .double-dmg-card .uc-name { font-size: 26px; letter-spacing: 5px; color: #f5c842; text-shadow: 0 0 14px rgba(245,200,66,0.6); }
-  .double-dmg-card .uc-btn { width: auto; padding: 9px 28px; font-size: 16px; }
   .shop-title {
     font-family: 'Bebas Neue', sans-serif;
     font-size: clamp(56px, 10vw, 110px);
@@ -821,7 +805,7 @@
 <body>
 
 <!-- VERSION badge -->
-<div id="version-badge">v4.4</div>
+<div id="version-badge">v4.5</div>
 
 <!-- ══ WELCOME SCREEN ══ -->
 <div id="welcome-screen" class="screen active">
@@ -1097,7 +1081,7 @@
 
 <script>
 // ── VERSION ──
-const VERSION = 'v4.4';
+const VERSION = 'v4.5';
 
 // ── Progression / unlock system ──
 // Progress is saved to localStorage so it persists between sessions.
@@ -1120,14 +1104,18 @@ let gunUpgrades = JSON.parse(localStorage.getItem('csGunUpgrades') || '{}');
   if (gunUpgrades[k] === undefined) gunUpgrades[k] = 0;
 });
 
-// 2× damage multiplier — one-time 5000 Monki purchase, applies on top of everything else
-let damageDoubled = localStorage.getItem('csDamageDoubled') === 'true';
+// 2× damage multiplier — per-gun, 5000 Monki each, applies on top of upgrades
+// Stored as { m1911: false, revolver: false, ... }
+let damageDoubled = JSON.parse(localStorage.getItem('csDamageDoubled') || '{}');
+['m1911','revolver','deagle','shotgun','flintlock','railgun'].forEach(k => {
+  if (damageDoubled[k] === undefined) damageDoubled[k] = false;
+});
 
-// Returns the effective damage for a gun key (base + upgrades + 2× if bought)
+// Returns the effective damage for a gun key (base + upgrades + 2× if bought for that gun)
 function getGunDamage(key) {
   const gun  = GUNS.find(g => g.key === key);
   const base = (gun ? gun.damage : 1) + (gunUpgrades[key] || 0);
-  return damageDoubled ? base * 2 : base;
+  return damageDoubled[key] ? base * 2 : base;
 }
 
 // What beating each difficulty unlocks (guns + next difficulty)
@@ -1574,15 +1562,15 @@ document.getElementById('reset-btn').addEventListener('click', () => {
     unlockedGuns         = ['m1911'];
     unlockedMaps         = ['newyork'];
     monki                = 0;
-    damageDoubled        = false;
     Object.keys(gunUpgrades).forEach(k => gunUpgrades[k] = 0);
+    Object.keys(damageDoubled).forEach(k => damageDoubled[k] = false);
 
     localStorage.setItem('csUnlockedDiffs',   JSON.stringify(unlockedDifficulties));
     localStorage.setItem('csUnlockedGuns',    JSON.stringify(unlockedGuns));
     localStorage.setItem('csUnlockedMaps',    JSON.stringify(unlockedMaps));
     localStorage.setItem('csMonki',           '0');
-    localStorage.setItem('csGunUpgrades',     JSON.stringify(gunUpgrades));
-    localStorage.setItem('csDamageDoubled',   'false');
+    localStorage.setItem('csGunUpgrades',   JSON.stringify(gunUpgrades));
+    localStorage.setItem('csDamageDoubled', JSON.stringify(damageDoubled));
     updateMonkiDisplays();
     renderShop();
 
@@ -1835,60 +1823,23 @@ function updateMonkiDisplays() {
 }
 
 // ── Render the shop upgrade cards ──
-// Builds one card per gun showing current damage, upgrade pips, and a buy button.
+// Builds one card per gun showing damage, level pips, upgrade button, and 2× button.
 function renderShop() {
   updateMonkiDisplays();
   const container = document.getElementById('shop-upgrades');
   container.innerHTML = '';
 
-  // --- 2× DAMAGE CARD (one-time purchase, sits above the per-gun cards) ---
-  const doubleCard = document.createElement('div');
-  doubleCard.className = 'upgrade-card double-dmg-card' + (damageDoubled ? ' maxed' : '');
-  doubleCard.innerHTML = `
-    <div class="uc-name">2× DAMAGE</div>
-    <div class="uc-damage" style="text-align:center;line-height:1.5">
-      Doubles the damage of <span>every gun</span>,<br>stacks with upgrades
-    </div>
-    <div class="uc-damage" style="margin-top:2px">
-      ${damageDoubled ? '<span style="color:var(--hud-green)">✔ ACTIVE</span>' : '🍌 5000 MONKI'}
-    </div>
-  `;
-  const doubleBtn = document.createElement('button');
-  doubleBtn.className = 'uc-btn';
-  if (damageDoubled) {
-    doubleBtn.textContent = 'PURCHASED';
-    doubleBtn.disabled = true;
-  } else {
-    doubleBtn.textContent = 'BUY  🍌 5000';
-    doubleBtn.disabled = monki < 5000;
-    doubleBtn.addEventListener('click', () => {
-      if (monki < 5000) return;
-      monki         -= 5000;
-      damageDoubled  = true;
-      localStorage.setItem('csMonki',         monki);
-      localStorage.setItem('csDamageDoubled', 'true');
-      renderShop();
-    });
-  }
-  doubleCard.appendChild(doubleBtn);
-  container.appendChild(doubleCard);
-
-  // Divider between the 2× card and per-gun upgrade cards
-  const divider = document.createElement('div');
-  divider.style.cssText = 'width:100%;border-top:1px solid rgba(255,255,255,0.08);margin:4px 0;';
-  container.appendChild(divider);
-
   GUNS.forEach(gun => {
-    const level      = gunUpgrades[gun.key] || 0;
-    const maxed      = level >= MAX_UPGRADE_LEVEL;
-    const baseDmg    = gun.damage;
-    const totalDmg   = baseDmg + level;
-    const nextCost   = maxed ? null : UPGRADE_COSTS[level]; // cost of the NEXT level
-    const canAfford  = nextCost !== null && monki >= nextCost;
+    const level     = gunUpgrades[gun.key] || 0;
+    const maxed     = level >= MAX_UPGRADE_LEVEL;
+    const doubled   = damageDoubled[gun.key] || false;
+    const totalDmg  = getGunDamage(gun.key);   // already accounts for upgrades + 2×
+    const nextCost  = maxed ? null : UPGRADE_COSTS[level];
+    const canAfford = nextCost !== null && monki >= nextCost;
 
     // --- Card ---
     const card = document.createElement('div');
-    card.className = 'upgrade-card' + (maxed ? ' maxed' : '');
+    card.className = 'upgrade-card' + (maxed && doubled ? ' maxed' : '');
 
     // Gun name
     const nameEl = document.createElement('div');
@@ -1896,15 +1847,15 @@ function renderShop() {
     nameEl.textContent = gun.name;
     card.appendChild(nameEl);
 
-    // Damage line: "DAMAGE: 3 (+1)"
+    // Damage line — show base+upgrades and 2× badge if active
     const dmgEl = document.createElement('div');
     dmgEl.className = 'uc-damage';
-    dmgEl.innerHTML = level > 0
-      ? `DAMAGE: <span>${totalDmg}</span> <span style="color:rgba(245,200,66,0.8)">(+${level})</span>`
-      : `DAMAGE: <span>${totalDmg}</span>`;
+    const upgradeBonus = level > 0 ? ` <span style="color:rgba(245,200,66,0.8)">(+${level})</span>` : '';
+    const doubleBadge  = doubled   ? ` <span style="color:var(--hud-green)">×2</span>` : '';
+    dmgEl.innerHTML = `DAMAGE: <span>${totalDmg}</span>${upgradeBonus}${doubleBadge}`;
     card.appendChild(dmgEl);
 
-    // Upgrade level pips (3 pips, filled = bought)
+    // Upgrade level pips
     const pipsEl = document.createElement('div');
     pipsEl.className = 'upgrade-pips';
     for (let i = 0; i < MAX_UPGRADE_LEVEL; i++) {
@@ -1914,7 +1865,7 @@ function renderShop() {
     }
     card.appendChild(pipsEl);
 
-    // Buy button
+    // Damage upgrade button
     const btn = document.createElement('button');
     btn.className = 'uc-btn';
     if (maxed) {
@@ -1925,15 +1876,37 @@ function renderShop() {
       btn.disabled = !canAfford;
       btn.addEventListener('click', () => {
         if (monki < nextCost) return;
-        // Deduct Monki and apply upgrade
         monki -= nextCost;
         gunUpgrades[gun.key]++;
         localStorage.setItem('csMonki',       monki);
         localStorage.setItem('csGunUpgrades', JSON.stringify(gunUpgrades));
-        renderShop();   // re-render cards with new state
+        renderShop();
       });
     }
     card.appendChild(btn);
+
+    // 2× damage button (per-gun, 5000 Monki)
+    const dblBtn = document.createElement('button');
+    dblBtn.className = 'uc-btn';
+    dblBtn.style.marginTop = '2px';
+    if (doubled) {
+      dblBtn.textContent = '2× ACTIVE  ✔';
+      dblBtn.disabled = true;
+      dblBtn.style.borderColor = 'rgba(0,255,136,0.4)';
+      dblBtn.style.color = 'var(--hud-green)';
+    } else {
+      dblBtn.textContent = '2× DMG  🍌 5000';
+      dblBtn.disabled = monki < 5000;
+      dblBtn.addEventListener('click', () => {
+        if (monki < 5000) return;
+        monki -= 5000;
+        damageDoubled[gun.key] = true;
+        localStorage.setItem('csMonki',         monki);
+        localStorage.setItem('csDamageDoubled', JSON.stringify(damageDoubled));
+        renderShop();
+      });
+    }
+    card.appendChild(dblBtn);
     container.appendChild(card);
   });
 }
