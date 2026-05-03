@@ -678,7 +678,7 @@
 <body>
 
 <!-- VERSION badge -->
-<div id="version-badge">v3.7</div>
+<div id="version-badge">v3.8</div>
 
 <!-- ══ WELCOME SCREEN ══ -->
 <div id="welcome-screen" class="screen active">
@@ -942,7 +942,7 @@
 
 <script>
 // ── VERSION ──
-const VERSION = 'v3.7';
+const VERSION = 'v3.8';
 
 // ── Progression / unlock system ──
 // Progress is saved to localStorage so it persists between sessions.
@@ -1151,7 +1151,7 @@ let lerpMouseY = 0;  // smoothed vertical offset   (-1 = top,      1 = bottom)
 const DIFFICULTY_PRESETS = {
   beginner:     { minMs: 900,  maxMs: 1600, roundBonus: 20,  playerHp: 5, botHp: 4  },
   intermediate: { minMs: 500,  maxMs: 1100, roundBonus: 60,  playerHp: 3, botHp: 6  },
-  advanced:     { minMs: 260,  maxMs: 650,  roundBonus: 80,  playerHp: 2, botHp: 8  },
+  advanced:     { minMs: 260,  maxMs: 650,  roundBonus: 80,  playerHp: 2, botHp: 7  },
   extreme:      { minMs: 80,   maxMs: 300,  roundBonus: 100, playerHp: 1, botHp: 10 },
   nightmare:    { minMs: 15,   maxMs: 80,   roundBonus: 150, playerHp: 1, botHp: 15 },
 };
@@ -1169,12 +1169,12 @@ let botHp       = 3;
 // Gun definitions — damage is how much HP is removed from the bot per successful shot
 // Bot always deals 1 HP damage to the player
 const GUNS = [
-  { key: 'm1911',     name: 'M1911',        damage: 1, draw: drawGunM1911    },
-  { key: 'revolver',  name: 'REVOLVER',     damage: 1, draw: drawGunRevolver },
-  { key: 'deagle',    name: 'DESERT EAGLE', damage: 2, draw: drawGunDeagle   },
-  { key: 'shotgun',   name: 'SAWED-OFF',    damage: 1, draw: drawGunShotgun  },
-  { key: 'flintlock', name: 'FLINTLOCK',    damage: 3, draw: drawGunFlintlock },
-  { key: 'railgun',   name: 'RAILGUN',      damage: 4, draw: drawGunRailgun   },
+  { key: 'm1911',     name: 'M1911',        damage: 2, draw: drawGunM1911    },
+  { key: 'revolver',  name: 'REVOLVER',     damage: 2, draw: drawGunRevolver },
+  { key: 'deagle',    name: 'DESERT EAGLE', damage: 3, draw: drawGunDeagle   },
+  { key: 'shotgun',   name: 'SAWED-OFF',    damage: 2, draw: drawGunShotgun  },
+  { key: 'flintlock', name: 'FLINTLOCK',    damage: 4, draw: drawGunFlintlock },
+  { key: 'railgun',   name: 'RAILGUN',      damage: 5, draw: drawGunRailgun   },
 ];
 let selectedGun = 'm1911';
 
