@@ -213,6 +213,18 @@
   /* ══════════════════════════════
      DIFFICULTY SCREEN
   ══════════════════════════════ */
+  /* ── Shop screen ── */
+  #shop-screen { background: #0a0a0f; gap: 0; }
+  .shop-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(56px, 10vw, 110px);
+    letter-spacing: 6px;
+    color: #fff;
+    text-shadow: 0 0 40px rgba(255,34,68,0.7), 0 0 80px rgba(255,34,68,0.3);
+    line-height: 1;
+    margin-bottom: 6px;
+  }
+
   #difficulty-screen { background: #0a0a0f; gap: 0; }
 
   .diff-picker {
@@ -678,7 +690,7 @@
 <body>
 
 <!-- VERSION badge -->
-<div id="version-badge">v3.9</div>
+<div id="version-badge">v4.0</div>
 
 <!-- ══ WELCOME SCREEN ══ -->
 <div id="welcome-screen" class="screen active">
@@ -722,7 +734,15 @@
   </p>
 
   <button id="start-btn">START GAME</button>
+  <button id="shop-btn">SHOP</button>
   <button id="reset-btn">RESET PROGRESS</button>
+</div>
+
+<!-- ══ SHOP SCREEN ══ -->
+<div id="shop-screen" class="screen">
+  <h1 class="shop-title">SHOP</h1>
+  <p class="subtitle" style="margin-bottom: 40px;">COMING SOON</p>
+  <button id="shop-back-btn">← BACK</button>
 </div>
 
 <!-- ══ DIFFICULTY SCREEN ══ -->
@@ -942,7 +962,7 @@
 
 <script>
 // ── VERSION ──
-const VERSION = 'v3.9';
+const VERSION = 'v4.0';
 
 // ── Progression / unlock system ──
 // Progress is saved to localStorage so it persists between sessions.
@@ -1180,6 +1200,7 @@ let selectedGun = 'm1911';
 
 // ── DOM refs ──
 const startScreen      = document.getElementById('start-screen');
+const shopScreen       = document.getElementById('shop-screen');
 const difficultyScreen = document.getElementById('difficulty-screen');
 const gunScreen        = document.getElementById('gun-screen');
 const gameScreen       = document.getElementById('game-screen');
@@ -1222,6 +1243,18 @@ document.addEventListener('keydown', e => {
   if (welcomeScreen.classList.contains('active')) {
     leaveWelcome();
   }
+});
+
+// ── Shop button → go to shop screen ──
+document.getElementById('shop-btn').addEventListener('click', () => {
+  showScreen(startScreen, false);
+  showScreen(shopScreen, true);
+});
+
+// ── Shop back button → return to start screen ──
+document.getElementById('shop-back-btn').addEventListener('click', () => {
+  showScreen(shopScreen, false);
+  showScreen(startScreen, true);
 });
 
 // ── Start button → go to difficulty screen ──
