@@ -678,7 +678,7 @@
 <body>
 
 <!-- VERSION badge -->
-<div id="version-badge">v3.8</div>
+<div id="version-badge">v3.9</div>
 
 <!-- ══ WELCOME SCREEN ══ -->
 <div id="welcome-screen" class="screen active">
@@ -942,7 +942,7 @@
 
 <script>
 // ── VERSION ──
-const VERSION = 'v3.8';
+const VERSION = 'v3.9';
 
 // ── Progression / unlock system ──
 // Progress is saved to localStorage so it persists between sessions.
@@ -1149,11 +1149,11 @@ let lerpMouseY = 0;  // smoothed vertical offset   (-1 = top,      1 = bottom)
 // playerHp = how many hits the player can take before losing
 // botHp    = how many hits the bot can take before losing
 const DIFFICULTY_PRESETS = {
-  beginner:     { minMs: 900,  maxMs: 1600, roundBonus: 20,  playerHp: 5, botHp: 4  },
-  intermediate: { minMs: 500,  maxMs: 1100, roundBonus: 60,  playerHp: 3, botHp: 6  },
-  advanced:     { minMs: 260,  maxMs: 650,  roundBonus: 80,  playerHp: 2, botHp: 7  },
-  extreme:      { minMs: 80,   maxMs: 300,  roundBonus: 100, playerHp: 1, botHp: 10 },
-  nightmare:    { minMs: 15,   maxMs: 80,   roundBonus: 150, playerHp: 1, botHp: 15 },
+  beginner:     { minMs: 900,  maxMs: 1600, roundBonus: 20,  playerHp: 6, botHp: 4  },
+  intermediate: { minMs: 500,  maxMs: 1100, roundBonus: 60,  playerHp: 4, botHp: 6  },
+  advanced:     { minMs: 260,  maxMs: 650,  roundBonus: 80,  playerHp: 3, botHp: 7  },
+  extreme:      { minMs: 80,   maxMs: 300,  roundBonus: 100, playerHp: 2, botHp: 10 },
+  nightmare:    { minMs: 15,   maxMs: 80,   roundBonus: 150, playerHp: 2, botHp: 15 },
 };
 let selectedDifficulty = 'beginner';
 let botMinMs      = 500;
