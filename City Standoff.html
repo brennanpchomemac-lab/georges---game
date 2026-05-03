@@ -303,6 +303,65 @@
   }
   .upgrade-card.maxed { border-color: rgba(0,255,136,0.3); }
   .upgrade-card.maxed .uc-btn { border-color: rgba(0,255,136,0.4); color: var(--hud-green); background: rgba(0,255,136,0.07); }
+
+  /* ── Health upgrade cards ── */
+  #shop-health {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 14px;
+    max-width: 780px;
+  }
+  .hp-upgrade-card {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(0,255,136,0.18);
+    border-radius: 8px;
+    padding: 16px 20px;
+    width: 160px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  .hp-upgrade-card:hover { border-color: rgba(0,255,136,0.45); box-shadow: 0 0 14px rgba(0,255,136,0.15); }
+  .hp-upgrade-card .hc-name {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 16px;
+    letter-spacing: 3px;
+    color: #fff;
+  }
+  .hp-upgrade-card .hc-hp {
+    font-size: 12px;
+    letter-spacing: 2px;
+    color: rgba(255,255,255,0.55);
+  }
+  .hp-upgrade-card .hc-hp span { color: var(--hud-green); font-weight: bold; }
+  /* HP level pips */
+  .hp-pips { display: flex; gap: 6px; }
+  .hp-pip {
+    width: 16px; height: 6px;
+    border-radius: 3px;
+    background: rgba(255,255,255,0.12);
+    border: 1px solid rgba(255,255,255,0.2);
+  }
+  .hp-pip.filled { background: var(--hud-green); border-color: var(--hud-green); box-shadow: 0 0 6px rgba(0,255,136,0.5); }
+  .hp-upgrade-card .hc-btn {
+    margin-top: 4px;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 13px;
+    letter-spacing: 2px;
+    padding: 7px 12px;
+    border-radius: 4px;
+    border: 1px solid rgba(0,255,136,0.4);
+    background: rgba(0,255,136,0.08);
+    color: var(--hud-green);
+    cursor: pointer;
+    width: 100%;
+    transition: background 0.2s, box-shadow 0.2s;
+  }
+  .hp-upgrade-card .hc-btn:hover:not(:disabled) { background: rgba(0,255,136,0.2); box-shadow: 0 0 12px rgba(0,255,136,0.3); }
+  .hp-upgrade-card .hc-btn:disabled { opacity: 0.35; cursor: not-allowed; background: transparent; box-shadow: none; }
   .shop-title {
     font-family: 'Bebas Neue', sans-serif;
     font-size: clamp(56px, 10vw, 110px);
@@ -805,7 +864,7 @@
 <body>
 
 <!-- VERSION badge -->
-<div id="version-badge">v4.6</div>
+<div id="version-badge">v4.7</div>
 
 <!-- ══ WELCOME SCREEN ══ -->
 <div id="welcome-screen" class="screen active">
@@ -859,6 +918,8 @@
   <div id="shop-monki-balance">🍌 <span id="shop-monki-count">0</span> MONKI</div>
   <p class="subtitle" style="margin-top: 14px; margin-bottom: 24px;">DAMAGE UPGRADES</p>
   <div id="shop-upgrades"></div>
+  <p class="subtitle" style="margin-top: 28px; margin-bottom: 20px;">HEALTH UPGRADES</p>
+  <div id="shop-health"></div>
   <button id="shop-back-btn" style="margin-top: 32px;">← BACK</button>
 </div>
 
@@ -1081,7 +1142,7 @@
 
 <script>
 // ── VERSION ──
-const VERSION = 'v4.6';
+const VERSION = 'v4.7';
 
 // ── Progression / unlock system ──
 // Progress is saved to localStorage so it persists between sessions.
@@ -1109,6 +1170,15 @@ let gunUpgrades = JSON.parse(localStorage.getItem('csGunUpgrades') || '{}');
 let damageDoubled = JSON.parse(localStorage.getItem('csDamageDoubled') || '{}');
 ['m1911','revolver','deagle','shotgun','flintlock','railgun'].forEach(k => {
   if (damageDoubled[k] === undefined) damageDoubled[k] = false;
+});
+
+// Extra HP purchased per difficulty mode (up to 3 per mode)
+// Cost per level: 150 → 400 → 800 Monki
+const MAX_HP_UPGRADES  = 3;
+const HP_UPGRADE_COSTS = [150, 400, 800];
+let extraHp = JSON.parse(localStorage.getItem('csExtraHp') || '{}');
+['beginner','intermediate','advanced','extreme','nightmare'].forEach(k => {
+  if (extraHp[k] === undefined) extraHp[k] = 0;
 });
 
 // Returns the effective damage for a gun key (base + upgrades + 2× if bought for that gun)
@@ -1426,7 +1496,7 @@ document.getElementById('confirm-diff-btn').addEventListener('click', () => {
   botMaxMs      = preset.maxMs;
   botRoundBonus = preset.roundBonus;
   // Set HP maximums for this run based on difficulty
-  playerHpMax   = preset.playerHp;
+  playerHpMax   = preset.playerHp + (extraHp[selectedDifficulty] || 0);
   botHpMax      = preset.botHp;
   monkiPerRound = preset.monkiPerRound;
   monkiWinBonus = preset.monkiWinBonus;
@@ -1564,6 +1634,7 @@ document.getElementById('reset-btn').addEventListener('click', () => {
     monki                = 0;
     Object.keys(gunUpgrades).forEach(k => gunUpgrades[k] = 0);
     Object.keys(damageDoubled).forEach(k => damageDoubled[k] = false);
+    Object.keys(extraHp).forEach(k => extraHp[k] = 0);
 
     localStorage.setItem('csUnlockedDiffs',   JSON.stringify(unlockedDifficulties));
     localStorage.setItem('csUnlockedGuns',    JSON.stringify(unlockedGuns));
@@ -1571,6 +1642,7 @@ document.getElementById('reset-btn').addEventListener('click', () => {
     localStorage.setItem('csMonki',           '0');
     localStorage.setItem('csGunUpgrades',   JSON.stringify(gunUpgrades));
     localStorage.setItem('csDamageDoubled', JSON.stringify(damageDoubled));
+    localStorage.setItem('csExtraHp',       JSON.stringify(extraHp));
     updateMonkiDisplays();
     renderShop();
 
@@ -1828,6 +1900,7 @@ function renderShop() {
   updateMonkiDisplays();
   const container = document.getElementById('shop-upgrades');
   container.innerHTML = '';
+  renderShopHealth();
 
   GUNS.forEach(gun => {
     const level     = gunUpgrades[gun.key] || 0;
@@ -1907,6 +1980,78 @@ function renderShop() {
       });
     }
     card.appendChild(dblBtn);
+    container.appendChild(card);
+  });
+}
+
+// ── Render health upgrade cards (one per difficulty mode) ──
+// Each card shows the mode's base HP, current extra HP, 3 pips, and a buy button.
+function renderShopHealth() {
+  const container = document.getElementById('shop-health');
+  container.innerHTML = '';
+
+  const DIFF_LABELS = {
+    beginner:     'BEGINNER',
+    intermediate: 'INTERMEDIATE',
+    advanced:     'ADVANCED',
+    extreme:      'EXTREME',
+    nightmare:    'NIGHTMARE',
+  };
+
+  Object.entries(DIFF_LABELS).forEach(([diff, label]) => {
+    const preset   = DIFFICULTY_PRESETS[diff];
+    const level    = extraHp[diff] || 0;
+    const maxed    = level >= MAX_HP_UPGRADES;
+    const totalHp  = preset.playerHp + level;
+    const nextCost = maxed ? null : HP_UPGRADE_COSTS[level];
+
+    const card = document.createElement('div');
+    card.className = 'hp-upgrade-card';
+
+    // Difficulty name
+    const nameEl = document.createElement('div');
+    nameEl.className = 'hc-name';
+    nameEl.textContent = label;
+    card.appendChild(nameEl);
+
+    // HP total line
+    const hpEl = document.createElement('div');
+    hpEl.className = 'hc-hp';
+    hpEl.innerHTML = level > 0
+      ? `HP: <span>${totalHp}</span> <span style="color:rgba(0,255,136,0.7)">(+${level})</span>`
+      : `HP: <span>${totalHp}</span>`;
+    card.appendChild(hpEl);
+
+    // Level pips
+    const pipsEl = document.createElement('div');
+    pipsEl.className = 'hp-pips';
+    for (let i = 0; i < MAX_HP_UPGRADES; i++) {
+      const pip = document.createElement('div');
+      pip.className = 'hp-pip' + (i < level ? ' filled' : '');
+      pipsEl.appendChild(pip);
+    }
+    card.appendChild(pipsEl);
+
+    // Buy button
+    const btn = document.createElement('button');
+    btn.className = 'hc-btn';
+    if (maxed) {
+      btn.textContent = 'MAX HP';
+      btn.disabled = true;
+    } else {
+      btn.textContent = `+1 HP  🍌 ${nextCost}`;
+      btn.disabled = monki < nextCost;
+      btn.addEventListener('click', () => {
+        if (monki < nextCost) return;
+        monki -= nextCost;
+        extraHp[diff]++;
+        localStorage.setItem('csMonki',   monki);
+        localStorage.setItem('csExtraHp', JSON.stringify(extraHp));
+        renderShopHealth();
+        updateMonkiDisplays();
+      });
+    }
+    card.appendChild(btn);
     container.appendChild(card);
   });
 }
