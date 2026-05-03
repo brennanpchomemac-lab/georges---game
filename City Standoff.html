@@ -821,7 +821,7 @@
 <body>
 
 <!-- VERSION badge -->
-<div id="version-badge">v4.3</div>
+<div id="version-badge">v4.4</div>
 
 <!-- ══ WELCOME SCREEN ══ -->
 <div id="welcome-screen" class="screen active">
@@ -1097,7 +1097,7 @@
 
 <script>
 // ── VERSION ──
-const VERSION = 'v4.3';
+const VERSION = 'v4.4';
 
 // ── Progression / unlock system ──
 // Progress is saved to localStorage so it persists between sessions.
@@ -1120,7 +1120,7 @@ let gunUpgrades = JSON.parse(localStorage.getItem('csGunUpgrades') || '{}');
   if (gunUpgrades[k] === undefined) gunUpgrades[k] = 0;
 });
 
-// 2× damage multiplier — one-time 1000 Monki purchase, applies on top of everything else
+// 2× damage multiplier — one-time 5000 Monki purchase, applies on top of everything else
 let damageDoubled = localStorage.getItem('csDamageDoubled') === 'true';
 
 // Returns the effective damage for a gun key (base + upgrades + 2× if bought)
@@ -1850,7 +1850,7 @@ function renderShop() {
       Doubles the damage of <span>every gun</span>,<br>stacks with upgrades
     </div>
     <div class="uc-damage" style="margin-top:2px">
-      ${damageDoubled ? '<span style="color:var(--hud-green)">✔ ACTIVE</span>' : '🍌 1000 MONKI'}
+      ${damageDoubled ? '<span style="color:var(--hud-green)">✔ ACTIVE</span>' : '🍌 5000 MONKI'}
     </div>
   `;
   const doubleBtn = document.createElement('button');
@@ -1859,11 +1859,11 @@ function renderShop() {
     doubleBtn.textContent = 'PURCHASED';
     doubleBtn.disabled = true;
   } else {
-    doubleBtn.textContent = 'BUY  🍌 1000';
-    doubleBtn.disabled = monki < 1000;
+    doubleBtn.textContent = 'BUY  🍌 5000';
+    doubleBtn.disabled = monki < 5000;
     doubleBtn.addEventListener('click', () => {
-      if (monki < 1000) return;
-      monki         -= 1000;
+      if (monki < 5000) return;
+      monki         -= 5000;
       damageDoubled  = true;
       localStorage.setItem('csMonki',         monki);
       localStorage.setItem('csDamageDoubled', 'true');
