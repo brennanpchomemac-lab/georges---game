@@ -214,7 +214,23 @@
      DIFFICULTY SCREEN
   ══════════════════════════════ */
   /* ── Shop screen ── */
-  #shop-screen { background: #0a0a0f; gap: 0; }
+  #shop-screen { background: #0a0a0f; gap: 0; position: relative; }
+  #shop-back-btn {
+    position: absolute;
+    top: 18px;
+    left: 20px;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 14px;
+    letter-spacing: 2px;
+    padding: 7px 16px;
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.25);
+    color: rgba(255,255,255,0.7);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s, border-color 0.2s;
+  }
+  #shop-back-btn:hover { background: rgba(255,255,255,0.08); color: #fff; border-color: rgba(255,255,255,0.5); }
   #shop-monki-balance {
     font-family: 'Bebas Neue', sans-serif;
     font-size: 32px;
@@ -251,12 +267,12 @@
   .upgrade-card:hover { border-color: rgba(245,200,66,0.4); box-shadow: 0 0 14px rgba(245,200,66,0.15); }
   .upgrade-card .uc-name {
     font-family: 'Bebas Neue', sans-serif;
-    font-size: 13px;
+    font-size: 11px;
     letter-spacing: 2px;
     color: #fff;
   }
   .upgrade-card .uc-damage {
-    font-size: 10px;
+    font-size: 9px;
     letter-spacing: 1px;
     color: rgba(255,255,255,0.55);
   }
@@ -278,9 +294,9 @@
   .upgrade-card .uc-btn {
     margin-top: 4px;
     font-family: 'Bebas Neue', sans-serif;
-    font-size: 11px;
+    font-size: 10px;
     letter-spacing: 1px;
-    padding: 5px 10px;
+    padding: 4px 8px;
     border-radius: 4px;
     border: 1px solid rgba(245,200,66,0.5);
     background: rgba(245,200,66,0.1);
@@ -327,12 +343,12 @@
   .hp-upgrade-card:hover { border-color: rgba(0,255,136,0.45); box-shadow: 0 0 14px rgba(0,255,136,0.15); }
   .hp-upgrade-card .hc-name {
     font-family: 'Bebas Neue', sans-serif;
-    font-size: 13px;
+    font-size: 11px;
     letter-spacing: 2px;
     color: #fff;
   }
   .hp-upgrade-card .hc-hp {
-    font-size: 10px;
+    font-size: 9px;
     letter-spacing: 1px;
     color: rgba(255,255,255,0.55);
   }
@@ -349,9 +365,9 @@
   .hp-upgrade-card .hc-btn {
     margin-top: 4px;
     font-family: 'Bebas Neue', sans-serif;
-    font-size: 11px;
+    font-size: 10px;
     letter-spacing: 1px;
-    padding: 5px 10px;
+    padding: 4px 8px;
     border-radius: 4px;
     border: 1px solid rgba(0,255,136,0.4);
     background: rgba(0,255,136,0.08);
@@ -864,7 +880,7 @@
 <body>
 
 <!-- VERSION badge -->
-<div id="version-badge">v4.8</div>
+<div id="version-badge">v4.9</div>
 
 <!-- ══ WELCOME SCREEN ══ -->
 <div id="welcome-screen" class="screen active">
@@ -914,13 +930,13 @@
 
 <!-- ══ SHOP SCREEN ══ -->
 <div id="shop-screen" class="screen">
+  <button id="shop-back-btn">← MAIN MENU</button>
   <h1 class="shop-title">SHOP</h1>
   <div id="shop-monki-balance">🍌 <span id="shop-monki-count">0</span> MONKI</div>
   <p class="subtitle" style="margin-top: 14px; margin-bottom: 24px;">DAMAGE UPGRADES</p>
   <div id="shop-upgrades"></div>
   <p class="subtitle" style="margin-top: 28px; margin-bottom: 20px;">HEALTH UPGRADES</p>
   <div id="shop-health"></div>
-  <button id="shop-back-btn" style="margin-top: 32px;">← BACK</button>
 </div>
 
 <!-- ══ DIFFICULTY SCREEN ══ -->
@@ -1142,7 +1158,7 @@
 
 <script>
 // ── VERSION ──
-const VERSION = 'v4.8';
+const VERSION = 'v4.9';
 
 // ── Progression / unlock system ──
 // Progress is saved to localStorage so it persists between sessions.
